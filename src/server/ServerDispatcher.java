@@ -1,4 +1,4 @@
 package server;
 
-public class ServerDispatcher {
+public class ServerDispatcher extends Thread {
 }

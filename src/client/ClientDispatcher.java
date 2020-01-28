@@ -1,15 +1,19 @@
 package client;
 
+import abs.command.Payload;
+import command.SendCommand;
 import factory.DispatcherFactory;
 import listener.EventManager;
-import command.SendCommand;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
-public class ClientDispatcher extends Thread {
+public class ClientDispatcher implements Runnable {
 
     private Socket socket;
 
@@ -30,45 +34,41 @@ public class ClientDispatcher extends Thread {
     @Override
     public void run() {
         while (!socket.isClosed()) {
-            String input = scanner.next();
-            String[] commands = input.split(" ");
-
+            String input = scanner.nextLine();
+            ArrayList<String> commands = new ArrayList<>(Arrays.asList(input.split(" ")));
             dispatch(commands);
         }
     }
 
-    public void dispatch(String[] commands) {
-        String mainCommand = commands[0];
+    public void dispatch(ArrayList<String> commands) {
+        String mainCommand = commands.remove(0);
 
+        Payload payload = constructPayload(commands);
+        System.out.println(mainCommand + ": " + payload.get());
         if (mainCommand != null) {
-            events.notifySubscribers(mainCommand, "Test payload");
+            events.notifySubscribers(
+                    mainCommand, payload);
         }
+    }
+
+    private Payload constructPayload(ArrayList<String> commands) {
+        String payload = commands
+                .stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(" "));
+
+//        System.out.println("Constructed payload:" + payload);
+        return new Payload(payload);
     }
 
     private void setupListeners() {
         try {
             for (SendCommand et : SendCommand.values()) {
-                events.addSubscriber('/' + et.get(), DispatcherFactory.spawnListener(et, socket));
+                events.addSubscriber(CONSTANTS.COMMAND_PREFIX + et.get(), DispatcherFactory.spawnListener(et, socket));
             }
         } catch (RuntimeException | IOException | IllegalAccessException rte) {
             rte.printStackTrace();
         }
-    }
-
-    public PrintWriter getOut() {
-        return stream;
-    }
-
-    public void setOut(PrintWriter stream) {
-        this.stream = stream;
-    }
-
-    public EventManager getEvents() {
-        return events;
-    }
-
-    public void setEvents(EventManager events) {
-        this.events = events;
     }
 }
 

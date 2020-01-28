@@ -2,6 +2,7 @@ package abs.component;
 
 public abstract class Component {
 
+
     public final void start() {
 
         initialize();

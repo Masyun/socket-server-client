@@ -9,14 +9,14 @@ import java.util.Scanner;
 public class Client extends Component {
 
     private Scanner scanner;
-    private Socket serverSocket;
-    private ClientDispatcher dispatcher;
-    private ClientReceptor receptor;
+    private Socket socket;
+    private Thread dispatcher;
+    private Thread receptor;
 
     public Client() {
         try {
-            this.serverSocket = new Socket(CONSTANTS.SERVER_ADDRESS, CONSTANTS.SERVER_PORT);
-            System.out.println("Connected on serverSocket address " + serverSocket.getLocalSocketAddress().toString());
+            this.socket = new Socket(CONSTANTS.SERVER_ADDRESS, CONSTANTS.SERVER_PORT);
+            System.out.println("Connected on socket address " + socket.getLocalSocketAddress().toString());
         } catch (IOException e) {
             System.err.println("Connection could not be established at "
                     + CONSTANTS.SERVER_ADDRESS
@@ -31,15 +31,11 @@ public class Client extends Component {
     @Override
     protected void initialize() {
         try {
-            /*
-            Receiver Thread
-             */
-//            BufferedReader receiver = new BufferedReader(new InputStreamReader(serverSocket.getInputStream())); // in
-//            receptor = new ClientReceptor(receiver);
-
-
             // Sender Thread
-            dispatcher = new ClientDispatcher(serverSocket);
+            dispatcher = new Thread(new ClientDispatcher(socket));
+
+            // Receiver thread
+            receptor = new Thread(new ClientReceptor(socket));
 
 //            while (true) {
 //                System.out.print("Enter your username: ");
@@ -68,7 +64,7 @@ public class Client extends Component {
     @Override
     public void run() {
         dispatcher.start();
-//        receptor.start();
+        receptor.start();
     }
 
     @Override

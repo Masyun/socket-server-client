@@ -1,6 +1,7 @@
 package listener;
 
 import abs.command.Command;
+import abs.command.Payload;
 import abs.listener.CommandListener;
 import abs.listener.Publisher;
 
@@ -37,10 +38,12 @@ public class EventManager implements Publisher {
     }
 
     @Override
-    public void notifySubscribers(String operation, String payload) {
+    public void notifySubscribers(String operation, Payload payload) {
         CommandListener listener = listeners.get(operation);
         if (listener != null) {
             listener.update(payload);
+        }else{
+            System.out.println("Invalid command!");
         }
     }
 }

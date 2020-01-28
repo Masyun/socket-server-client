@@ -3,15 +3,23 @@ package abs.strategy;
 import abs.command.Command;
 import abs.command.Payload;
 
+import java.util.InputMismatchException;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 public abstract class AbsStrategy implements Strategy, Command {
 
-    protected static Scanner scanner = new Scanner(System.in);
+    protected Scanner scanner;
 
-    public AbsStrategy() {
+    protected abstract String format(Payload payload) throws InputMismatchException;
+
+    private void flush() {
+        scanner = new Scanner(System.in);
     }
 
     @Override
-    public abstract String execute(String payload);
+    public String execute(Payload payload) throws NoSuchElementException {
+        flush();
+        return format(payload);
+    }
 }

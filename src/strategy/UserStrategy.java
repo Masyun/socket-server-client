@@ -15,7 +15,7 @@ public class UserStrategy extends AbsStrategy {
     }
 
     @Override
-    public String execute(String payload) {
-        return payload + scanner.next();
+    public String format(Payload payload) {
+        return payload.get();
     }
 }

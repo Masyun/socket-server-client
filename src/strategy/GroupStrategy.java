@@ -12,7 +12,7 @@ public class GroupStrategy extends AbsStrategy {
     }
 
     @Override
-    public String execute(String payload) {
-        return null;
+    public String format(Payload payload) {
+        return payload.get();
     }
 }

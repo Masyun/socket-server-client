@@ -14,18 +14,17 @@ public class ReceiveCommandListener extends CommandListener {
 
     protected PrintWriter out;
     protected BufferedReader in;
-    protected AbsStrategy strategy;
 
     public ReceiveCommandListener(Socket socket, AbsStrategy command) throws IOException {
-        super(socket, command.get());
-        this.strategy = command;
+        super(socket, command);
         this.out = new PrintWriter(socket.getOutputStream());
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }
 
     @Override
-    public void update(String payload) {
-        super.update(payload);
-        strategy.execute(payload);
+    public void update(Payload payload) {
+        out.println("/pong");
+        out.flush();
+//        strategy.execute(payload);
     }
 }
