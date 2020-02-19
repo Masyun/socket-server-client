@@ -1,9 +1,9 @@
 package client;
 
 import abs.command.Payload;
-import command.ReceiveCommand;
-import factory.ReceptorFactory;
+import abs.listener.CommandListener;
 import listener.EventManager;
+import listener.ReceiveCommandListener;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,7 +21,7 @@ public class ClientReceptor implements Runnable {
     private PrintWriter outStream;
     private BufferedReader inStream;
 
-    private EventManager events = new EventManager(ClientReceptor.class.getSimpleName(), ReceiveCommand.values());
+    private EventManager events = new EventManager(ClientReceptor.class.getSimpleName());
 
     public ClientReceptor(Socket socket) throws IOException, NullPointerException {
         this.socket = socket;
@@ -45,33 +45,32 @@ public class ClientReceptor implements Runnable {
     }
 
     public void receive(ArrayList<String> commands) {
-        String mainCommand = commands.get(0);
+        String mainCommand = commands.remove(0);
 
-        Payload payload = constructPayload(commands);
+        Payload payload = fromStrings(commands);
 
         if (mainCommand != null) {
             events.notifySubscribers(mainCommand, payload);
         }
     }
 
-    private Payload constructPayload(ArrayList<String> commands) {
+    private Payload<String> fromStrings(ArrayList<String> commands) {
         String payload = commands
                 .stream()
                 .map(String::valueOf)
                 .collect(Collectors.joining(" "));
 
 //        System.out.println("Constructed payload:" + payload);
-        return new Payload(payload);
+        return new Payload<>(payload);
+    }
+
+    public void addListener(String command, CommandListener listener){
+        events.addSubscriber(CONSTANTS.COMMAND_PREFIX, command, listener);
     }
 
     private void setupListeners() throws IOException {
-        try {
-            for (ReceiveCommand et : ReceiveCommand.values()) {
-                events.addSubscriber(CONSTANTS.COMMAND_PREFIX + et.get(), ReceptorFactory.spawnListener(et, socket));
-            }
-        } catch (RuntimeException | IllegalAccessException rte) {
-            rte.printStackTrace();
-        }
+        addListener("res_user_create", new ReceiveCommandListener(socket));
+        addListener("ping", new ReceiveCommandListener(socket));
     }
 }
 

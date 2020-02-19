@@ -1,26 +1,22 @@
 package abs.listener;
 
 import abs.command.Payload;
-import abs.strategy.AbsStrategy;
 
 import java.net.Socket;
 
 public abstract class CommandListener {
-    protected Socket socket;
     protected String command;
-    protected AbsStrategy strategy;
+    protected Socket socket;
 
-    public CommandListener(Socket socket, AbsStrategy command) {
+    public CommandListener(Socket socket) {
         this.socket = socket;
-        this.command = command.get();
-        this.strategy = command;
-    }
-
-    public String getCommand() {
-        return command;
     }
 
     public void update(Payload payload){
         System.out.println("[listener/" + this.command + "]" + payload.get());
+    }
+
+    public void setCommand(String command) {
+        this.command = command;
     }
 }

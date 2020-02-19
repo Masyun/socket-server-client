@@ -1,6 +1,5 @@
 package listener;
 
-import abs.command.Command;
 import abs.command.Payload;
 import abs.listener.CommandListener;
 import abs.listener.Publisher;
@@ -13,11 +12,7 @@ public class EventManager implements Publisher {
     private final String identifier;
     private Map<String, CommandListener> listeners = new HashMap<>();
 
-    public EventManager(String identifier, Command... operations) {
-        for (Command operation : operations) {
-            this.listeners.put(operation.get(), null);
-        }
-
+    public EventManager(String identifier) {
         this.identifier = identifier;
     }
 
@@ -26,9 +21,9 @@ public class EventManager implements Publisher {
     }
 
     @Override
-    public void addSubscriber(String operation, CommandListener listener) {
+    public void addSubscriber(String prefix, String operation, CommandListener listener) {
         System.out.println("Setting handler for [" + operation + "] commands on " + this.identifier);
-        listeners.put(operation, listener);
+        listeners.put(prefix + operation, listener);
 
     }
 
@@ -42,8 +37,6 @@ public class EventManager implements Publisher {
         CommandListener listener = listeners.get(operation);
         if (listener != null) {
             listener.update(payload);
-        }else{
-            System.out.println("Invalid command!");
         }
     }
 }

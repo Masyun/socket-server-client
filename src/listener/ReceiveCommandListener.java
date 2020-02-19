@@ -2,7 +2,6 @@ package listener;
 
 import abs.command.Payload;
 import abs.listener.CommandListener;
-import abs.strategy.AbsStrategy;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,8 +14,8 @@ public class ReceiveCommandListener extends CommandListener {
     protected PrintWriter out;
     protected BufferedReader in;
 
-    public ReceiveCommandListener(Socket socket, AbsStrategy command) throws IOException {
-        super(socket, command);
+    public ReceiveCommandListener(Socket socket) throws IOException {
+        super(socket);
         this.out = new PrintWriter(socket.getOutputStream());
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }

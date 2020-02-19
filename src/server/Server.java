@@ -8,7 +8,6 @@ import java.net.ServerSocket;
 public class Server extends Component {
 
     private ServerSocket serverSocket;
-    private Database database;
     private ServerDispatcher dispatcher;
     private ServerReceptor receptor;
 

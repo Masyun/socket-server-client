@@ -1,15 +1,16 @@
 package abs.command;
 
-public class Payload implements Command{
+import java.io.Serializable;
 
-    private final String content;
+public class Payload<T> implements Serializable {
 
-    public Payload(String content) {
+    private final T content;
+
+    public Payload(T content) {
         this.content = content;
     }
 
-    @Override
-    public String get() {
+    public T get() {
         return content;
     }
 }
