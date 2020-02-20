@@ -22,7 +22,7 @@ public class EventManager implements Publisher {
 
     @Override
     public void addSubscriber(String prefix, String operation, CommandListener listener) {
-        System.out.println("Setting handler for [" + operation + "] commands on " + this.identifier);
+        System.out.println("Setting handler for [" + operation + "] commands on " + getIdentifier());
         listeners.put(prefix + operation, listener);
 
     }
@@ -36,6 +36,7 @@ public class EventManager implements Publisher {
     public void notifySubscribers(String operation, Payload payload) {
         CommandListener listener = listeners.get(operation);
         if (listener != null) {
+            System.out.println("[handler" + operation + "] - " + payload);
             listener.update(payload);
         }
     }

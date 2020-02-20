@@ -4,11 +4,9 @@ import abs.component.Component;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Scanner;
 
 public class Client extends Component {
 
-    private Scanner scanner;
     private Socket socket;
     private Thread dispatcher;
     private Thread receptor;
@@ -24,18 +22,16 @@ public class Client extends Component {
                     + CONSTANTS.SERVER_PORT);
             System.exit(-1);
         }
-
-        scanner = new Scanner(System.in);
     }
 
     @Override
     protected void initialize() {
         try {
             // Sender Thread
-            dispatcher = new Thread(new ClientDispatcher(socket));
+            dispatcher = new Thread(new ClientDispatcher(socket, "Client dispatcher"));
 
             // Receiver thread
-            receptor = new Thread(new ClientReceptor(socket));
+            receptor = new Thread(new ClientReceptor(socket, "Client receptor"));
 
 //            while (true) {
 //                System.out.print("Enter your username: ");

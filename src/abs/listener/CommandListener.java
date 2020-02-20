@@ -2,21 +2,21 @@ package abs.listener;
 
 import abs.command.Payload;
 
-import java.net.Socket;
-
 public abstract class CommandListener {
     protected String command;
-    protected Socket socket;
+//    protected Communicator communicator;
 
-    public CommandListener(Socket socket) {
-        this.socket = socket;
+    public CommandListener() {
+//        this.communicator = communicator;
     }
 
-    public void update(Payload payload){
-        System.out.println("[listener/" + this.command + "]" + payload.get());
-    }
+    public abstract void update(Payload payload);
 
     public void setCommand(String command) {
         this.command = command;
     }
+
+//    public Socket getSocket(){
+//        return communicator.getSocket();
+//    }
 }
