@@ -1,7 +1,6 @@
 package model;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Vector;
 
 /**
  * Class for a group.
@@ -10,12 +9,12 @@ public class Group {
 
     // Group details
     private String name;
-    private String administrator;
-    private List<String> usersInGroup; // Users by username
+    private User administrator;
+    private Vector<User> usersInGroup; // Users by username
 
     public Group(String name) {
         this.name = name;
-        this.usersInGroup = new ArrayList<>();
+        this.usersInGroup = new Vector<>();
     }
 
     /**
@@ -41,25 +40,26 @@ public class Group {
      *
      * @return String
      */
-    public String getAdministrator() {
+    public User getAdministrator() {
         return administrator;
     }
 
     /**
      * Set group administrator to user's username.
      *
-     * @param administrator String
+     * @param administrator User
      */
-    public void setAdministrator(String administrator) {
+    public void setAdministrator(User administrator) {
+        addUser(administrator);
         this.administrator = administrator;
     }
 
     /**
      * Get users in a group in Strings.
      *
-     * @return List<String>
+     * @return List<User>
      */
-    public List<String> getUsersInGroup() {
+    public Vector<User> getUsersInGroup() {
         return usersInGroup;
     }
 
@@ -69,7 +69,7 @@ public class Group {
      * @param user User
      */
     public void addUser(User user) {
-        this.usersInGroup.add(user.getUsername());
+        this.usersInGroup.add(user);
     }
 
     /**
@@ -78,15 +78,20 @@ public class Group {
      * @param user User
      */
     public void removeUser(User user) {
-        for (int i = 0; i < usersInGroup.size(); i++) {
-            if (user.getUsername().equals(usersInGroup.get(i))) {
-                usersInGroup.remove(i);
-            }
-        }
+        usersInGroup.remove(user);
     }
+
+    /**
+     *
+     * @param id
+     */
+    public void removeUserId(int id){
+        usersInGroup.remove(id);
+    }
+
 
     @Override
     public String toString() {
-        return "Group: " + name + " | Admin: " + getAdministrator() + ")";
+        return "Group: " + name + "(" + getUsersInGroup().size() + ") | Admin: " + getAdministrator().getUsername() + "){ " + getUsersInGroup() + " }";
     }
 }

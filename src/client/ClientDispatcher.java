@@ -1,6 +1,7 @@
 package client;
 
 import abs.command.Payload;
+import abs.listener.CommandListener;
 import communicator.Communicator;
 import listener.GenericSender;
 
@@ -42,25 +43,22 @@ public class ClientDispatcher extends Communicator {
                 new GenericSender(this));
         addListener("group_leave",
                 new GenericSender(this));
-        addListener("kick",
+        addListener("user",
                 new GenericSender(this));
-
-//        addListener("user_create",
-//                new CommandListener() {
-//                    @Override
-//                    public void update(Payload payload) {
-//                        req.println(payload.get());
-//                        req.flush();
-//                    }
-//                });
-//
-//        addListener("pong", new CommandListener() {
-//            @Override
-//            public void update(Payload payload) {
-//                req.println("/pong");
-//                req.flush();
-//            }
-//        });
+        addListener("group_kick",
+                new GenericSender(this));
+        addListener("logout", new CommandListener() {
+            @Override
+            public void update(Payload payload) {
+                try {
+                    req.println(CONSTANTS.COMMAND_PREFIX + command);
+                    req.flush();
+                    getSocket().close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     @Override
@@ -90,7 +88,6 @@ public class ClientDispatcher extends Communicator {
                 .map(String::valueOf)
                 .collect(Collectors.joining(" "));
 
-//        System.out.println("Constructed payload:" + payload);
         return new Payload<>(payload);
     }
 }

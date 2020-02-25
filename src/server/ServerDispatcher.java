@@ -3,6 +3,7 @@ package server;
 import abs.command.Payload;
 import abs.listener.CommandListener;
 import communicator.Communicator;
+import model.User;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -11,6 +12,7 @@ import java.net.Socket;
 public class ServerDispatcher extends Communicator {
 
     private final PrintWriter res;
+    private final static int RETRY_ATTEMPTS = 10;
 
     public ServerDispatcher(Socket socket, String name) throws IOException {
         super(socket, name);
@@ -18,11 +20,12 @@ public class ServerDispatcher extends Communicator {
     }
 
     @Override
-    protected void attachListeners() throws IOException {
+    protected void attachListeners() {
         addListener("ping", new CommandListener() {
             @Override
             public void update(Payload payload) {
-                res.println("/ping " + payload.get());
+//                Database.getInstance().getSocketConnection(getSocket()).setPong(false);
+                res.println(CONSTANTS.COMMAND_PREFIX + command + " " + payload.get());
                 res.flush();
             }
         });
@@ -30,28 +33,43 @@ public class ServerDispatcher extends Communicator {
 
     @Override
     public void run() {
+        int retry = 0;
         while (!getSocket().isClosed() && isRunning()) {
             try {
-                Thread.sleep(2000);
-                notifySub("/ping", new Payload<>("stub"));
+                Thread.sleep(1500);
+
+                notifySub(CONSTANTS.COMMAND_PREFIX + "ping", new Payload<>("stub"));
 
                 Thread.sleep(3000); // Wait 3 seconds for PingPong
 
-//                if (user.isPong()) {
-//                    System.out.println("PONG received from " + user);
-//                    user.setPong(false);
-//                } else {
-//                    System.out.println("Client will be disconnected. No PONG received!");
-//                    user.setOnline(false);
-//                    user.getSocket().close();
-//                    break;
-//                }
-            } catch (InterruptedException e) {
-                setRunning(false);
-                System.err.println("Stopping server dispatcher");
+                /**
+                 * Do pong check -> stop dispatcher otherwise
+                 */
+                User user = Database.getInstance().getSocketConnection(getSocket());
+
+                if (user != null) {
+                    System.out.println(getName() + ": pong received");
+                    user.setPong(false);
+                }else{
+                    res.println("Please register using | /register [username] [password] | or you will get kicked(" + (RETRY_ATTEMPTS - retry) + ")");
+                    res.flush();
+                    retry += 1;
+                    if (retry >= RETRY_ATTEMPTS){
+                        System.out.println("Terminating " + getName());
+                        res.println(CONSTANTS.COMMAND_PREFIX + "logout_res");
+                        res.flush();
+                        setRunning(false);
+                        getSocket().close();
+                    }
+                }
+
+            } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
+                setRunning(false);
             }
         }
+
+        System.out.println("Terminating dispatcher thread" + getName());
     }
 }
 

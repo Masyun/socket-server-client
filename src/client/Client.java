@@ -1,6 +1,7 @@
 package client;
 
 import abs.component.Component;
+import communicator.Communicator;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -8,8 +9,10 @@ import java.net.Socket;
 public class Client extends Component {
 
     private Socket socket;
-    private Thread dispatcher;
-    private Thread receptor;
+    private Communicator clientDispatcher;
+    private Communicator clientReceptor;
+    private Thread dispatcherThread;
+    private Thread receptorThread;
 
     public Client() {
         try {
@@ -28,10 +31,12 @@ public class Client extends Component {
     protected void initialize() {
         try {
             // Sender Thread
-            dispatcher = new Thread(new ClientDispatcher(socket, "Client dispatcher"));
+            clientDispatcher = new ClientDispatcher(socket, socket.getRemoteSocketAddress().toString());
+            dispatcherThread = new Thread(clientDispatcher);
 
             // Receiver thread
-            receptor = new Thread(new ClientReceptor(socket, "Client receptor"));
+            clientReceptor = new ClientReceptor(socket, socket.getRemoteSocketAddress().toString());
+            receptorThread = new Thread(clientReceptor);
 
 //            while (true) {
 //                System.out.print("Enter your username: ");
@@ -59,8 +64,8 @@ public class Client extends Component {
 
     @Override
     public void run() {
-        dispatcher.start();
-        receptor.start();
+        dispatcherThread.start();
+        receptorThread.start();
     }
 
     @Override

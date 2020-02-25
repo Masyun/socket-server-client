@@ -4,6 +4,7 @@ import abs.command.Payload;
 
 public abstract class CommandListener {
     protected String command;
+    protected String resCommand;
 //    protected Communicator communicator;
 
     public CommandListener() {
@@ -14,6 +15,7 @@ public abstract class CommandListener {
 
     public void setCommand(String command) {
         this.command = command;
+        this.resCommand = command + "_res ";
     }
 
 //    public Socket getSocket(){

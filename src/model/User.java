@@ -19,7 +19,7 @@ public class User {
         this.password = password;
         this.socket = socket;
         this.online = true;
-        this.pong = false;
+        this.pong = true;
     }
 
     /**
@@ -103,11 +103,8 @@ public class User {
     @Override
     public String toString() {
         return "User{" +
-                "username='" + username + '\'' +
-                ", password='" + password + '\'' +
-                ", socket=" + socket +
+                "username=" + username +
                 ", online=" + online +
-                ", pong=" + pong +
-                '}';
+                "}";
     }
 }

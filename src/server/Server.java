@@ -37,14 +37,13 @@ public class Server extends Component {
                 System.out.println("\nNew incoming client-connection " + socket.getRemoteSocketAddress().toString());
 //                ServerReceptor receptor = new ServerReceptor(socket, socket.getRemoteSocketAddress().toString());
                 // Message processing thread for each connecting client
-                new Thread(new ServerReceptor(socket, socket.getRemoteSocketAddress().toString())).start();
-                System.out.println("Message processing thread started for " +
-                        socket.getRemoteSocketAddress().toString() + "!");
 
+                new Thread(new ServerReceptor(socket, socket.getRemoteSocketAddress().toString())).start();
                 new Thread(new ServerDispatcher(socket, socket.getRemoteSocketAddress().toString())).start();
-//                // Ping thread for each connecting client
-//                new Thread(new PingHandler(socket, provider)).start();
-//                System.out.println("Ping thread started for " + socket.getRemoteSocketAddress().toString() + "!\n");
+
+
+                System.out.println("Processing threads started for " +
+                        socket.getRemoteSocketAddress().toString() + "!");
             } catch (IOException e) {
                 e.printStackTrace();
             }

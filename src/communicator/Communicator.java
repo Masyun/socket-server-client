@@ -2,8 +2,9 @@ package communicator;
 
 import abs.command.Payload;
 import abs.listener.CommandListener;
-import client.CONSTANTS;
+import server.CONSTANTS;
 import listener.EventManager;
+import model.User;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -14,11 +15,13 @@ public abstract class Communicator implements Runnable {
     private final Socket socket;
     private boolean running;
     private final EventManager events;
+    protected User loggedIn = null;
 
     public Communicator(Socket socket, String name) throws IOException {
         this.name = name;
         this.socket = socket;
         this.events = new EventManager(name);
+
         attachListeners();
         setRunning(true);
     }
