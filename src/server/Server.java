@@ -9,8 +9,6 @@ import java.net.Socket;
 public class Server extends Component {
 
     private ServerSocket serverSocket;
-//    private ServerDispatcher dispatcher;
-//    private Thread receptor;
 
     public Server() {
         try {
@@ -35,12 +33,15 @@ public class Server extends Component {
                 // Wait for an incoming client-connection request (blocking)
                 Socket socket = serverSocket.accept();
                 System.out.println("\nNew incoming client-connection " + socket.getRemoteSocketAddress().toString());
-//                ServerReceptor receptor = new ServerReceptor(socket, socket.getRemoteSocketAddress().toString());
-                // Message processing thread for each connecting client
-
-                new Thread(new ServerReceptor(socket, socket.getRemoteSocketAddress().toString())).start();
-                new Thread(new ServerDispatcher(socket, socket.getRemoteSocketAddress().toString())).start();
-
+                startClient(socket);
+////                ServerReceptor receptor = new ServerReceptor(socket, socket.getRemoteSocketAddress().toString());
+//                // Message processing thread for each connecting client
+//                ServerReceptor serverReceptor = new ServerReceptor(socket, socket.getRemoteSocketAddress().toString());
+//                serverReceptor.setLogging(true);
+//                new Thread(serverReceptor).start();
+//
+//                new Thread(new ServerDispatcher(socket, socket.getRemoteSocketAddress().toString())).start();
+//
 
                 System.out.println("Processing threads started for " +
                         socket.getRemoteSocketAddress().toString() + "!");
@@ -53,5 +54,22 @@ public class Server extends Component {
     @Override
     protected void end() {
         System.out.println("Server end()");
+    }
+
+    private void startClient(Socket socket){
+        ServerReceptor serverReceptor;
+        ServerDispatcher serverDispatcher;
+        try {
+            serverReceptor = new ServerReceptor(socket, socket.getRemoteSocketAddress().toString());
+            serverReceptor.setLogging(true);
+            new Thread(serverReceptor).start();
+
+            serverDispatcher = new ServerDispatcher(socket, socket.getRemoteSocketAddress().toString());
+            serverDispatcher.setLogging(true);
+            new Thread(serverDispatcher).start();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

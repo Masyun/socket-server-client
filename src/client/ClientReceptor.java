@@ -18,6 +18,7 @@ public class ClientReceptor extends Communicator {
 
     private final BufferedReader res;
     private final PrintWriter req;
+
     public ClientReceptor(Socket socket, String name) throws IOException {
         super(socket, name);
         res = new BufferedReader(new InputStreamReader(getSocket().getInputStream()));
@@ -26,24 +27,19 @@ public class ClientReceptor extends Communicator {
 
     @Override
     protected void attachListeners() throws IOException {
+        addListener("server", new CommandListener() {
+            @Override
+            public void update(Payload payload) {
+                System.out.println(payload.get());
+            }
+        });
         addListener("ping", new CommandListener() {
             @Override
             public void update(Payload payload) {
-                    req.println(CONSTANTS.COMMAND_PREFIX + resCommand);
-                    req.flush();
+                req.println(CONSTANTS.COMMAND_PREFIX + resCommand);
+                req.flush();
             }
         });
-        addListener("server_res", new GenericReceiver(this));
-        addListener("register_res", new GenericReceiver(this));
-        addListener("users_res", new GenericReceiver(this));
-        addListener("dm_res", new GenericReceiver(this));
-        addListener("group_create_res", new GenericReceiver(this));
-        addListener("group_message_res", new GenericReceiver(this));
-        addListener("groups_res", new GenericReceiver(this));
-        addListener("group_join_res", new GenericReceiver(this));
-        addListener("group_message_res", new GenericReceiver(this));
-        addListener("group_leave_res", new GenericReceiver(this));
-        addListener("group_kick_res", new GenericReceiver(this));
         addListener("logout_res", new CommandListener() {
             @Override
             public void update(Payload payload) {
@@ -54,6 +50,29 @@ public class ClientReceptor extends Communicator {
                 }
             }
         });
+        addListener("server_res", new GenericReceiver(this));
+        addListener("register_res", new GenericReceiver(this));
+        addListener("users_res", new GenericReceiver(this));
+        addListener("dm_res", new GenericReceiver(this));
+        addListener("file_init_res", new GenericReceiver(this));
+//        addListener("file_receive", null);
+        addListener("group_create_res", new GenericReceiver(this));
+        addListener("group_message_res", new GenericReceiver(this));
+        addListener("groups_res", new GenericReceiver(this));
+        addListener("group_join_res", new GenericReceiver(this));
+        addListener("group_message_res", new GenericReceiver(this));
+        addListener("group_leave_res", new GenericReceiver(this));
+        addListener("group_kick_res", new GenericReceiver(this));
+    }
+
+    @Override
+    protected void saveFile(Socket socket, String filename) throws IOException {
+
+    }
+
+    @Override
+    protected void sendFile(String file) throws IOException {
+
     }
 
     @Override
@@ -65,10 +84,11 @@ public class ClientReceptor extends Communicator {
 
                 // Print message
                 if (message != null && !message.isEmpty()) {
-//                    System.out.println("FROM SERVER: " + message);
-                    if (!message.contains("ping")){
-                        System.out.println("FROM SERVER: " + message);
-                    }
+//                    if (!message.contains("ping")) {
+//                        System.out.println("FROM SERVER: " + message);
+//                    }
+
+
                     receive(message);
                 }
             } catch (IOException e) {
@@ -83,7 +103,7 @@ public class ClientReceptor extends Communicator {
             }
         }
 
-        System.out.println("Terminating " + getName());
+        System.out.println("Disconnecting " + getName());
     }
 
     public void receive(String message) {

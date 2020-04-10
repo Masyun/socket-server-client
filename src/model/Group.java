@@ -50,7 +50,6 @@ public class Group {
      * @param administrator User
      */
     public void setAdministrator(User administrator) {
-        addUser(administrator);
         this.administrator = administrator;
     }
 
@@ -82,10 +81,9 @@ public class Group {
     }
 
     /**
-     *
      * @param id
      */
-    public void removeUserId(int id){
+    public void removeUserId(int id) {
         usersInGroup.remove(id);
     }
 

@@ -6,20 +6,27 @@ import communicator.Communicator;
 import model.Group;
 import model.User;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Vector;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class ServerReceptor extends Communicator {
 
     private final BufferedReader req;
     private final PrintWriter res;
+
+    private AtomicInteger lastFileId = new AtomicInteger(1);
+    private ArrayList<String> fileRequestNames = new ArrayList<>();
+    private HashMap<String, Boolean> fileRequestResponses = new HashMap<>();
+    private ArrayList<ScheduledFuture<Boolean>> fileRequestTasks = new ArrayList<>();
+
 
     public ServerReceptor(Socket socket, String name) throws IOException {
         super(socket, name);
@@ -29,51 +36,49 @@ public class ServerReceptor extends Communicator {
 
     @Override
     protected void attachListeners() {
-        addListener("server", new CommandListener() {
-            @Override
-            public void update(Payload payload) {
-                res.println(CONSTANTS.COMMAND_PREFIX + resCommand + " " + payload.get());
-                res.flush();
-            }
-        });
-//        addListener("ping_res", new CommandListener() {
+//        addListener("help", new CommandListener() {
 //            @Override
 //            public void update(Payload payload) {
-//                /**
-//                 * Stuff with a pingpong state in the database/loggedIn instance
-//                 */
-//                System.out.println("/pong received");
-//                User user = Database.getInstance().getSocketConnection(getSocket());
-//                if (user != null){
-//                    Database.getInstance().getSocketConnection(getSocket()).setPong(true);
-//                }
+//                String api = getEventsDescription();
+//                System.out.println(">>>>>>>>>\n" + api);
+//                res.println("/server " + api);
+//                res.flush();
 //            }
 //        });
+        addListener("ping_res", new CommandListener() {
+            @Override
+            public void update(Payload payload) {
+                /**
+                 * PingPong
+                 */
+                User user = Database.getInstance().getUserBySocket(getSocket());
+                if (user != null) {
+                    user.setPong(true);
+                }
+            }
+        });
         addListener("register", new CommandListener() {
             @Override
             public void update(Payload payload) {
-                ArrayList<String> parameters = parsePayload(payload);
+                ArrayList<String> parameters = parseToArray(payload);
 
                 String username = parameters.remove(0);
                 String password = parameters.remove(0);
 
                 Database.getInstance().insertUser(new User(username, password, getSocket()));
                 loggedIn = Database.getInstance().getUser(username);
-                res.println(loggedIn);
+                res.println("/server " + loggedIn);
                 res.flush();
             }
         });
         addListener("user", new CommandListener() {
             @Override
             public void update(Payload payload) {
-                if (loggedIn == null){
-                    res.println("AUTH");
-                    res.flush();
+                if (!isAuth()) {
                     return;
                 }
 
-                System.out.println("loggedIn: " + loggedIn);
-                res.println(loggedIn.getUsername());
+                res.println("/server " + loggedIn);
                 res.flush();
             }
         });
@@ -88,12 +93,10 @@ public class ServerReceptor extends Communicator {
         addListener("dm", new CommandListener() {
             @Override
             public void update(Payload payload) {
-                if (loggedIn == null){
-                    res.println("AUTH");
-                    res.flush();
+                if (!isAuth()) {
                     return;
                 }
-                ArrayList<String> parameters = parsePayload(payload);
+                ArrayList<String> parameters = parseToArray(payload);
 
                 String usernameToDm = parameters.remove(0);
                 String message = parameters.remove(0);
@@ -104,28 +107,136 @@ public class ServerReceptor extends Communicator {
                     res.flush();
                 } catch (IOException e) {
                     e.printStackTrace();
+                } finally {
+                    res.println("/server dm sent");
+                    res.flush();
                 }
+            }
+        });
+        addListener("file_init", new CommandListener() {
+            @Override
+            public void update(Payload payload) {
+                if (!isAuth()) {
+                    return;
+                }
+                // recipient name
+                // file name
+                ArrayList<String> parameters = parseToArray(payload);
+                String recipientName = parameters.remove(0);
+                String fileName = parameters.remove(0);
+
+
+                User recipient = Database.getInstance().getUser(recipientName);
+
+                if (recipient != null) {
+                    try {
+                        PrintWriter res = new PrintWriter(recipient.getSocket().getOutputStream());
+                        final int fileId = lastFileId.getAndIncrement();
+                        res.println(CONSTANTS.COMMAND_PREFIX + resCommand + loggedIn.getUsername() + " wants to send you file: " + fileName);
+                        res.println(CONSTANTS.COMMAND_PREFIX + resCommand + "reply with [/file_accept " + fileId + "] to accept file");
+                        res.flush();
+
+                        fileRequestResponses.put(fileName, false);
+                        fileRequestNames.add(fileName);
+
+                        /**
+                         * Schedule a task for 15 seconds in the future:
+                         * If the recipient responded to the file transfer request, do the file sending
+                         * if recipient didn't respond, dont do anything
+                         */
+                        ScheduledFuture<Boolean> fileTask = scheduledExecutorService.schedule(
+                                () -> {
+                                    /**
+                                     * If client response was received/accepted -> do execute
+                                     * if client didnt respond with "/file_accept <id>" cancel the task
+                                     */
+                                    boolean recipientResponse = fileRequestResponses.get(fileName);
+                                    System.out.println("recipientResponse: " + recipientResponse);
+
+                                    if (!recipientResponse) {
+                                        return false;
+                                    }
+
+                                    System.out.println("starting file transfer:\n" + fileName + " to " + recipientName);
+
+                                    File myFile = new File(fileName);
+                                    byte[] mybytearray = new byte[(int) myFile.length()];
+
+                                    FileInputStream fis = new FileInputStream(myFile);
+                                    BufferedInputStream bis = new BufferedInputStream(fis);
+
+                                    bis.read(mybytearray, 0, mybytearray.length);
+
+                                    System.out.println("Sending " + fileName + "(" + mybytearray.length + " bytes)");
+//
+//                                    try {
+//                                        PrintWriter res = new PrintWriter(Database.getInstance().getUser(usernameToDm).getSocket().getOutputStream());
+//                                        res.println(CONSTANTS.COMMAND_PREFIX + resCommand + loggedIn.getUsername() + ": " + message);
+//                                        res.flush();
+//                                    } catch (IOException e) {
+//                                        e.printStackTrace();
+//                                    }
+
+
+                                    recipient.getSocket().getOutputStream().write(mybytearray, 0, mybytearray.length);
+                                    recipient.getSocket().getOutputStream().flush();
+                                    System.out.println("Done.");
+
+                                    System.out.println("Executed!");
+                                    return true;
+                                },
+                                10,
+                                TimeUnit.SECONDS);
+
+                        fileRequestTasks.add(fileTask);
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+        addListener("file_accept", new CommandListener() {
+            @Override
+            public void update(Payload payload) {
+                if (!isAuth()) {
+                    return;
+                }
+
+                try {
+                    ArrayList<String> parameters = parseToArray(payload);
+                    int fileReqId = Integer.parseInt(parameters.remove(0)) - 1;
+                    String fileName = fileRequestNames.get(fileReqId);
+                    fileRequestResponses.put(fileName, true);
+//                    fileRequestTasks.get(fileReqId).cancel();
+                    System.out.println("Received file confirmation for file " + fileName);
+                } catch (IndexOutOfBoundsException e) {
+                    e.printStackTrace();
+                }
+
+                res.println("/server file accepted");
+                res.flush();
+
             }
         });
         addListener("group_create", new CommandListener() {
             @Override
             public void update(Payload payload) {
-                if (loggedIn == null){
-                    res.println("AUTH");
-                    res.flush();
+                if (!isAuth()) {
                     return;
                 }
-                ArrayList<String> parameters = parsePayload(payload);
+                ArrayList<String> parameters = parseToArray(payload);
 
                 String groupName = parameters.remove(0);
                 String adminName = loggedIn.getUsername();
                 User admin = Database.getInstance().getUser(adminName);
 
                 Group group = new Group(groupName);
+                group.addUser(loggedIn);
                 group.setAdministrator(admin);
 
                 Database.getInstance().createGroup(group);
-                res.println("201 - OK");
+                res.println("/server group created");
                 res.flush();
             }
         });
@@ -141,26 +252,24 @@ public class ServerReceptor extends Communicator {
         addListener("group_join", new CommandListener() {
             @Override
             public void update(Payload payload) {
-                if (loggedIn == null){
-                    res.println("AUTH");
-                    res.flush();
+                if (!isAuth()) {
                     return;
                 }
                 System.out.println("Group join request by " + loggedIn);
-                ArrayList<String> parameters = parsePayload(payload);
+                ArrayList<String> parameters = parseToArray(payload);
                 String groupName = parameters.remove(0);
                 Database.getInstance().addUserToGroup(groupName, loggedIn);
+                res.println("/server group joined");
+                res.flush();
             }
         });
         addListener("group_message", new CommandListener() {
             @Override
             public void update(Payload payload) {
-                if (loggedIn == null){
-                    res.println("AUTH");
-                    res.flush();
+                if (!isAuth()) {
                     return;
                 }
-                ArrayList<String> parameters = parsePayload(payload);
+                ArrayList<String> parameters = parseToArray(payload);
                 Group groupToMsg = Database.getInstance().getGroup(parameters.remove(0));
 
                 if (groupToMsg != null) {
@@ -179,12 +288,10 @@ public class ServerReceptor extends Communicator {
         addListener("group_leave", new CommandListener() {
             @Override
             public void update(Payload payload) {
-                if (loggedIn == null){
-                    res.println("AUTH");
-                    res.flush();
+                if (!isAuth()) {
                     return;
                 }
-                ArrayList<String> parameters = parsePayload(payload);
+                ArrayList<String> parameters = parseToArray(payload);
                 String groupName = parameters.remove(0);
 
                 Group group = Database.getInstance().getGroup(groupName);
@@ -204,16 +311,14 @@ public class ServerReceptor extends Communicator {
         addListener("group_kick", new CommandListener() {
             @Override
             public void update(Payload payload) {
-                if (loggedIn == null){
-                    res.println("AUTH");
-                    res.flush();
+                if (!isAuth()) {
                     return;
                 }
-                ArrayList<String> parameters = parsePayload(payload);
+                ArrayList<String> parameters = parseToArray(payload);
                 String groupName = parameters.remove(0);
                 String usernameToKick = parameters.remove(0);
 
-                if (Database.getInstance().getGroup(groupName).getAdministrator().equals(loggedIn)){ // user issuing kick command is admin of this group
+                if (Database.getInstance().getGroup(groupName).getAdministrator().equals(loggedIn)) { // user issuing kick command is admin of this group
                     User userToKick = Database.getInstance().getUser(usernameToKick);
                     Database.getInstance().getGroup(groupName).removeUser(userToKick);
                     res.print(loggedIn.getUsername() + " kicked " + usernameToKick + " from group " + groupName);
@@ -245,26 +350,50 @@ public class ServerReceptor extends Communicator {
                 }
             }
         });
+        addListener("help", new CommandListener() {
+            @Override
+            public void update(Payload payload) {
+                try {
+
+                } catch (Exception e) {
+
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void saveFile(Socket socket, String filename) throws IOException {
+
+    }
+
+    @Override
+    protected void sendFile(String file) throws IOException {
+
     }
 
     @Override
     public void run() {
         while (!getSocket().isClosed() && isRunning()) {
             try {
+
+                /**
+                 * if Task queue is empty, readLine
+                 */
                 String message = req.readLine();
-//                System.out.println("FROM CLIENT: " + message);
 
                 // Print message
                 if (message != null && !message.isEmpty()) {
                     receive(message);
                 }
+
             } catch (IOException e) {
                 e.printStackTrace();
                 try {
                     System.out.println("Closing socket...");
+                    setRunning(false);
                     getSocket().close();
                     System.out.println("Socket closed! :)");
-                    setRunning(false);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
@@ -278,13 +407,11 @@ public class ServerReceptor extends Communicator {
         ArrayList<String> commands = new ArrayList<>(Arrays.asList(message.split(" ")));
         String mainCommand = commands.remove(0);
 //        notifySub(mainCommand, new Payload<String>(message));
-        Payload payload = fromStrings(commands);
+        Payload<String> payload = fromStrings(commands);
 
         notifySub(
                 mainCommand,
                 payload);
-//        res.println("/200");
-//        res.flush();
     }
 
     private Payload<String> fromStrings(ArrayList<String> commands) {
@@ -297,8 +424,13 @@ public class ServerReceptor extends Communicator {
         return new Payload<>(payload);
     }
 
-    private ArrayList<String> parsePayload(Payload payload) {
-        String content = (String) payload.get();
-        return new ArrayList<>(Arrays.asList(content.split(" ")));
+    private boolean isAuth() {
+        if (loggedIn == null) {
+            res.println("FORBIDDEN");
+            res.flush();
+            return false;
+        }
+
+        return true;
     }
 }

@@ -15,15 +15,22 @@ public class Client extends Component {
     private Thread receptorThread;
 
     public Client() {
-        try {
-            this.socket = new Socket(CONSTANTS.SERVER_ADDRESS, CONSTANTS.SERVER_PORT);
-            System.out.println("Connected on socket address " + socket.getLocalSocketAddress().toString());
-        } catch (IOException e) {
-            System.err.println("Connection could not be established at "
-                    + CONSTANTS.SERVER_ADDRESS
-                    + ":"
-                    + CONSTANTS.SERVER_PORT);
-            System.exit(-1);
+        while (socket == null) {
+            try {
+                this.socket = new Socket(CONSTANTS.SERVER_ADDRESS, CONSTANTS.SERVER_PORT);
+                System.out.println("Connected on socket address " + socket.getLocalSocketAddress().toString());
+            } catch (IOException e) {
+                System.err.println("Connection could not be established at "
+                        + CONSTANTS.SERVER_ADDRESS
+                        + ":"
+                        + CONSTANTS.SERVER_PORT);
+                System.err.println("Retrying connection in 3 seconds");
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException waitingException) {
+                    waitingException.printStackTrace();
+                }
+            }
         }
     }
 
@@ -32,10 +39,12 @@ public class Client extends Component {
         try {
             // Sender Thread
             clientDispatcher = new ClientDispatcher(socket, socket.getRemoteSocketAddress().toString());
+            clientDispatcher.setLogging(true);
             dispatcherThread = new Thread(clientDispatcher);
 
             // Receiver thread
             clientReceptor = new ClientReceptor(socket, socket.getRemoteSocketAddress().toString());
+            clientReceptor.setLogging(true);
             receptorThread = new Thread(clientReceptor);
 
 //            while (true) {

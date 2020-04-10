@@ -18,7 +18,11 @@ public abstract class CommandListener {
         this.resCommand = command + "_res ";
     }
 
-//    public Socket getSocket(){
+    public String getCommand() {
+        return command;
+    }
+
+    //    public Socket getSocket(){
 //        return communicator.getSocket();
 //    }
 }

@@ -33,18 +33,30 @@ public class Database {
     }
 
     public User getUser(String name) {
-        User user = null;
-
         for (User u :
                 users) {
             if (u.getUsername().equalsIgnoreCase(name)) {
-                user = new User(u.getUsername(), u.getPassword(), u.getSocket());
-                break;
+                return u;
             }
         }
 
-        return user;
+        return null;
     }
+
+//    public User getUser(String name) {
+//        User user = null;
+//
+//        for (User u :
+//                users) {
+//            if (u.getUsername().equalsIgnoreCase(name)) {
+//                user = new User(u.getUsername(), u.getPassword(), u.getSocket());
+//                break;
+//            }
+//        }
+//
+//        return user;
+//    }
+
 
     /**
      * experimental
@@ -52,20 +64,39 @@ public class Database {
      * @param socket
      * @return
      */
-    public User getSocketConnection(Socket socket) {
-        User user = null;
+    public User getUserBySocket(Socket socket) {
+
         Vector<User> users = Database.getInstance().getUsers();
         for (User u :
                 users) {
             if (u.getSocket().equals(socket)) {
-//                System.out.println("[DB] getSocketConnection socket: " + socket + " - " + u);
-                user = u;
-                break;
+//                System.out.println("[DB] getUserBySocket socket: " + socket + " - " + u);
+                return u;
             }
         }
 
-        return user;
+        return null;
     }
+//    /**
+//     * experimental
+//     *
+//     * @param socket
+//     * @return
+//     */
+//    public User getUserBySocket(Socket socket) {
+//        User user = null;
+//        Vector<User> users = Database.getInstance().getUsers();
+//        for (User u :
+//                users) {
+//            if (u.getSocket().equals(socket)) {
+////                System.out.println("[DB] getUserBySocket socket: " + socket + " - " + u);
+//                user = u;
+//                break;
+//            }
+//        }
+//
+//        return user;
+//    }
 
 //    public void logoutUser(User loggedIn) throws IOException {
 //        User user = getUser(loggedIn.getUsername());
@@ -84,16 +115,14 @@ public class Database {
     }
 
     public Group getGroup(String groupName) {
-        Group group = null;
         for (Group g :
                 groups) {
             if (g.getName().equalsIgnoreCase(groupName)) {
-                group = g;
-                break;
+                return g;
             }
         }
 
-        return group;
+        return null;
     }
 
     public void addUserToGroup(String groupName, User user) {
@@ -121,12 +150,12 @@ public class Database {
         return false;
     }
 
-    public void logoutUser(Socket socket) {
+    public void logoutUser(Socket socket){
         for (Group g :
                 groups) {
-            removeUserFromGroup(g.getName(), getSocketConnection(socket));
+            removeUserFromGroup(g.getName(), getUserBySocket(socket));
         }
-        users.remove(getSocketConnection(socket));
-        System.out.println("After deletion from socket: " + getSocketConnection(socket));
+        getUserBySocket(socket).setOnline(false);
+        System.out.println("After logout call from database: " + getUserBySocket(socket));
     }
 }

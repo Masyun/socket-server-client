@@ -24,11 +24,25 @@ public class ServerDispatcher extends Communicator {
         addListener("ping", new CommandListener() {
             @Override
             public void update(Payload payload) {
-//                Database.getInstance().getSocketConnection(getSocket()).setPong(false);
+//                Database.getInstance().getUserBySocket(getSocket()).setPong(false);
                 res.println(CONSTANTS.COMMAND_PREFIX + command + " " + payload.get());
                 res.flush();
             }
         });
+    }
+
+    @Override
+    protected void saveFile(Socket socket, String filename) throws IOException {
+        throw new RuntimeException("Server dispatcher thread tried saving a file, big bad");
+    }
+
+
+    @Override
+    protected void sendFile(String file) throws IOException {
+        /**
+         * Should send a file to a recipient client after saving the file locally
+         * Might need socket reference here
+         */
     }
 
     @Override
@@ -40,21 +54,20 @@ public class ServerDispatcher extends Communicator {
 
                 notifySub(CONSTANTS.COMMAND_PREFIX + "ping", new Payload<>("stub"));
 
-                Thread.sleep(3000); // Wait 3 seconds for PingPong
-
+                Thread.sleep(5000); // Wait 3 seconds for PingPong
                 /**
                  * Do pong check -> stop dispatcher otherwise
                  */
-                User user = Database.getInstance().getSocketConnection(getSocket());
+                User user = Database.getInstance().getUserBySocket(getSocket());
 
                 if (user != null) {
                     System.out.println(getName() + ": pong received");
                     user.setPong(false);
                 }else{
-                    res.println("Please register using | /register [username] [password] | or you will get kicked(" + (RETRY_ATTEMPTS - retry) + ")");
+                    res.println(CONSTANTS.COMMAND_PREFIX + "server Please register using | /register [username] [password] | or you will get kicked(" + (RETRY_ATTEMPTS - retry) + ")");
                     res.flush();
                     retry += 1;
-                    if (retry >= RETRY_ATTEMPTS){
+                    if (retry >= RETRY_ATTEMPTS) {
                         System.out.println("Terminating " + getName());
                         res.println(CONSTANTS.COMMAND_PREFIX + "logout_res");
                         res.flush();
@@ -64,8 +77,14 @@ public class ServerDispatcher extends Communicator {
                 }
 
             } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
-                setRunning(false);
+                try {
+                    System.out.println("Closing socket...");
+                    setRunning(false);
+                    getSocket().close();
+                    System.out.println("Socket closed! :)");
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
             }
         }
 

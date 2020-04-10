@@ -5,6 +5,7 @@ import abs.listener.CommandListener;
 import communicator.Communicator;
 import listener.GenericSender;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -18,7 +19,6 @@ public class ClientDispatcher extends Communicator {
     private Scanner scanner;
     private final PrintWriter req;
 
-
     public ClientDispatcher(Socket socket, String name) throws IOException, NullPointerException {
         super(socket, name);
         this.scanner = new Scanner(System.in);
@@ -27,11 +27,24 @@ public class ClientDispatcher extends Communicator {
 
     @Override
     protected void attachListeners() throws IOException {
+        addListener("help",
+                new GenericSender(this));
         addListener("register",
+                new GenericSender(this));
+        addListener("user",
                 new GenericSender(this));
         addListener("users",
                 new GenericSender(this));
         addListener("dm",
+                new GenericSender(this));
+        addListener("file_init",
+                new CommandListener() {
+                    @Override
+                    public void update(Payload payload) {
+
+                    }
+                });
+        addListener("file_accept",
                 new GenericSender(this));
         addListener("group_create",
                 new GenericSender(this));
@@ -42,8 +55,6 @@ public class ClientDispatcher extends Communicator {
         addListener("group_message",
                 new GenericSender(this));
         addListener("group_leave",
-                new GenericSender(this));
-        addListener("user",
                 new GenericSender(this));
         addListener("group_kick",
                 new GenericSender(this));
@@ -62,6 +73,16 @@ public class ClientDispatcher extends Communicator {
     }
 
     @Override
+    protected void saveFile(Socket socket, String filename) throws IOException {
+
+    }
+
+    @Override
+    protected void sendFile(String file) throws IOException {
+
+    }
+
+    @Override
     public void run() {
         while (!getSocket().isClosed() && isRunning()) {
             String input = scanner.nextLine();
@@ -69,7 +90,7 @@ public class ClientDispatcher extends Communicator {
             dispatch(commands);
         }
 
-        System.out.println("Terminating " + getName());
+        System.out.println("Disconnecting " + getName());
     }
 
     public void dispatch(ArrayList<String> commands) {
@@ -89,6 +110,24 @@ public class ClientDispatcher extends Communicator {
                 .collect(Collectors.joining(" "));
 
         return new Payload<>(payload);
+    }
+}
+
+class FileInitiator implements Runnable {
+    private String recipient;
+    private String filename;
+    private int fileSize;
+    private File fileBlob;
+
+    public FileInitiator(String recipient, String filename, int fileSize) {
+        this.recipient = recipient;
+        this.filename = filename;
+        this.fileSize = fileSize;
+    }
+
+    @Override
+    public void run() {
+
     }
 }
 
