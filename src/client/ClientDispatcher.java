@@ -1,13 +1,12 @@
 package client;
 
+import AES.AES;
 import abs.command.Payload;
 import abs.listener.CommandListener;
 import communicator.Communicator;
 import listener.GenericSender;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,7 +27,12 @@ public class ClientDispatcher extends Communicator {
     @Override
     protected void attachListeners() throws IOException {
         addListener("help",
-                new GenericSender(this));
+                new CommandListener() {
+                    @Override
+                    public void update(Payload payload) {
+
+                    }
+                });
         addListener("register",
                 new GenericSender(this));
         addListener("user",
@@ -41,6 +45,22 @@ public class ClientDispatcher extends Communicator {
                 new CommandListener() {
                     @Override
                     public void update(Payload payload) {
+                        ArrayList<String> parameters = parseToArray(payload);
+                        String recipient = parameters.get(1);
+                        String fileName = parameters.get(2);
+
+                        System.out.println(parameters);
+
+                        try {
+                            req.println(payload.get());
+                            req.flush();
+                            new FileInitiator(recipient, fileName, getSocket()).sendFile();
+
+                            System.out.println("Sending file to server");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
 
                     }
                 });
@@ -72,15 +92,6 @@ public class ClientDispatcher extends Communicator {
         });
     }
 
-    @Override
-    protected void saveFile(Socket socket, String filename) throws IOException {
-
-    }
-
-    @Override
-    protected void sendFile(String file) throws IOException {
-
-    }
 
     @Override
     public void run() {
@@ -109,25 +120,62 @@ public class ClientDispatcher extends Communicator {
                 .map(String::valueOf)
                 .collect(Collectors.joining(" "));
 
+        payload = AES.encrypt(payload, CONSTANTS.SECRET);
         return new Payload<>(payload);
     }
-}
 
-class FileInitiator implements Runnable {
-    private String recipient;
-    private String filename;
-    private int fileSize;
-    private File fileBlob;
+    class FileInitiator {
+        private String recipient;
+        private String filename;
+        private long fileSize;
+        private File fileBlob;
 
-    public FileInitiator(String recipient, String filename, int fileSize) {
-        this.recipient = recipient;
-        this.filename = filename;
-        this.fileSize = fileSize;
-    }
+        private DataOutputStream dos;
+        private FileInputStream fis;
+        private byte[] buffer;
 
-    @Override
-    public void run() {
+        public FileInitiator(String recipient, String filename, Socket serverSocket) throws IOException {
+            this.recipient = recipient;
+            this.filename = filename;
+            this.fileBlob = new File("./" + filename);
+            this.fileSize = fileBlob.length() + 1;
 
+            this.dos = new DataOutputStream(serverSocket.getOutputStream());
+            this.fis = new FileInputStream(fileBlob);
+            this.buffer = new byte[4096];
+
+        }
+
+        public void sendFile() {
+            try {
+                int read;
+                while ((read = fis.read(buffer)) > 0) {
+                    dos.write(buffer, 0, read);
+                }
+                dos.flush();
+                fis.close();
+//                fis.close();
+//                dos.close();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+        }
+
+        public String getRecipient() {
+            return recipient;
+        }
+
+        public String getFilename() {
+            return filename;
+        }
+
+        public long getFileSize() {
+            return fileSize;
+        }
+
+        public File getFileBlob() {
+            return fileBlob;
+        }
     }
 }
 

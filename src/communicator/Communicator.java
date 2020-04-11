@@ -22,7 +22,7 @@ public abstract class Communicator implements Runnable {
     protected User loggedIn = null;
     protected ScheduledExecutorService scheduledExecutorService =
             Executors.newScheduledThreadPool(5);
-    private boolean logging = false;
+    protected boolean logging = false;
 
     public Communicator(Socket socket, String name) throws IOException {
         this.name = name;
@@ -34,10 +34,6 @@ public abstract class Communicator implements Runnable {
     }
 
     protected abstract void attachListeners() throws IOException;
-
-    protected abstract void saveFile(Socket socket, String filename) throws IOException;
-
-    protected abstract void sendFile(String file) throws IOException;
 
     protected void addListener(String command, CommandListener listener) {
         listener.setCommand(command);

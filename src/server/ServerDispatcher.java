@@ -32,20 +32,6 @@ public class ServerDispatcher extends Communicator {
     }
 
     @Override
-    protected void saveFile(Socket socket, String filename) throws IOException {
-        throw new RuntimeException("Server dispatcher thread tried saving a file, big bad");
-    }
-
-
-    @Override
-    protected void sendFile(String file) throws IOException {
-        /**
-         * Should send a file to a recipient client after saving the file locally
-         * Might need socket reference here
-         */
-    }
-
-    @Override
     public void run() {
         int retry = 0;
         while (!getSocket().isClosed() && isRunning()) {
@@ -61,9 +47,11 @@ public class ServerDispatcher extends Communicator {
                 User user = Database.getInstance().getUserBySocket(getSocket());
 
                 if (user != null) {
-                    System.out.println(getName() + ": pong received");
+                    if (logging) {
+                        System.out.println(getName() + ": pong received");
+                    }
                     user.setPong(false);
-                }else{
+                } else {
                     res.println(CONSTANTS.COMMAND_PREFIX + "server Please register using | /register [username] [password] | or you will get kicked(" + (RETRY_ATTEMPTS - retry) + ")");
                     res.flush();
                     retry += 1;

@@ -66,16 +66,6 @@ public class ClientReceptor extends Communicator {
     }
 
     @Override
-    protected void saveFile(Socket socket, String filename) throws IOException {
-
-    }
-
-    @Override
-    protected void sendFile(String file) throws IOException {
-
-    }
-
-    @Override
     public void run() {
         while (!getSocket().isClosed() && isRunning()) {
             try {

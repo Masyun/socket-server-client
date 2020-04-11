@@ -1,12 +1,16 @@
 package server;
 
+import AES.AES;
 import abs.command.Payload;
 import abs.listener.CommandListener;
 import communicator.Communicator;
 import model.Group;
 import model.User;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -129,6 +133,16 @@ public class ServerReceptor extends Communicator {
                 User recipient = Database.getInstance().getUser(recipientName);
 
                 if (recipient != null) {
+
+                    FileStorer fileStorer = new FileStorer(getSocket(), "file_buffer/" + fileName);
+                    try {
+                        fileStorer.saveFile();
+                    } catch (IOException e) {
+                        res.println("/server file transfer corrupted");
+                        res.flush();
+                        e.printStackTrace();
+                    }
+
                     try {
                         PrintWriter res = new PrintWriter(recipient.getSocket().getOutputStream());
                         final int fileId = lastFileId.getAndIncrement();
@@ -142,47 +156,48 @@ public class ServerReceptor extends Communicator {
                         /**
                          * Schedule a task for 15 seconds in the future:
                          * If the recipient responded to the file transfer request, do the file sending
-                         * if recipient didn't respond, dont do anything
+                         * if recipient didn't respond, dont do anything and cancel/remove the file
                          */
                         ScheduledFuture<Boolean> fileTask = scheduledExecutorService.schedule(
                                 () -> {
-                                    /**
-                                     * If client response was received/accepted -> do execute
-                                     * if client didnt respond with "/file_accept <id>" cancel the task
-                                     */
-                                    boolean recipientResponse = fileRequestResponses.get(fileName);
-                                    System.out.println("recipientResponse: " + recipientResponse);
-
-                                    if (!recipientResponse) {
-                                        return false;
-                                    }
-
-                                    System.out.println("starting file transfer:\n" + fileName + " to " + recipientName);
-
-                                    File myFile = new File(fileName);
-                                    byte[] mybytearray = new byte[(int) myFile.length()];
-
-                                    FileInputStream fis = new FileInputStream(myFile);
-                                    BufferedInputStream bis = new BufferedInputStream(fis);
-
-                                    bis.read(mybytearray, 0, mybytearray.length);
-
-                                    System.out.println("Sending " + fileName + "(" + mybytearray.length + " bytes)");
+//                                    /**
+//                                     * If client response was received/accepted -> do execute
+//                                     * if client didnt respond with "/file_accept <id>" cancel the task
+//                                     */
+//                                    boolean recipientResponse = fileRequestResponses.get(fileName);
+//                                    System.out.println("recipientResponse: " + recipientResponse);
 //
-//                                    try {
-//                                        PrintWriter res = new PrintWriter(Database.getInstance().getUser(usernameToDm).getSocket().getOutputStream());
-//                                        res.println(CONSTANTS.COMMAND_PREFIX + resCommand + loggedIn.getUsername() + ": " + message);
-//                                        res.flush();
-//                                    } catch (IOException e) {
-//                                        e.printStackTrace();
+//                                    if (!recipientResponse) {
+//                                        do cleanup of file on server here
+//                                        return false;
 //                                    }
-
-
-                                    recipient.getSocket().getOutputStream().write(mybytearray, 0, mybytearray.length);
-                                    recipient.getSocket().getOutputStream().flush();
-                                    System.out.println("Done.");
-
-                                    System.out.println("Executed!");
+//
+//                                    System.out.println("starting file transfer:\n" + fileName + " to " + recipientName);
+////                                    String datePrefix = new SimpleDateFormat("yyyyMMddHHmm").format(new Date()) + "." + fileType;
+//                                    File myFile = new File(fileName);
+//                                    byte[] mybytearray = new byte[(int) myFile.length()];
+//
+//                                    FileInputStream fis = new FileInputStream(myFile);
+//                                    BufferedInputStream bis = new BufferedInputStream(fis);
+//
+//                                    bis.read(mybytearray, 0, mybytearray.length);
+//
+//                                    System.out.println("Sending " + fileName + "(" + mybytearray.length + " bytes)");
+////
+////                                    try {
+////                                        PrintWriter res = new PrintWriter(Database.getInstance().getUser(usernameToDm).getSocket().getOutputStream());
+////                                        res.println(CONSTANTS.COMMAND_PREFIX + resCommand + loggedIn.getUsername() + ": " + message);
+////                                        res.flush();
+////                                    } catch (IOException e) {
+////                                        e.printStackTrace();
+////                                    }
+//
+//
+//                                    recipient.getSocket().getOutputStream().write(mybytearray, 0, mybytearray.length);
+//                                    recipient.getSocket().getOutputStream().flush();
+//                                    System.out.println("Done.");
+//
+//                                    System.out.println("Executed!");
                                     return true;
                                 },
                                 10,
@@ -350,26 +365,6 @@ public class ServerReceptor extends Communicator {
                 }
             }
         });
-        addListener("help", new CommandListener() {
-            @Override
-            public void update(Payload payload) {
-                try {
-
-                } catch (Exception e) {
-
-                }
-            }
-        });
-    }
-
-    @Override
-    protected void saveFile(Socket socket, String filename) throws IOException {
-
-    }
-
-    @Override
-    protected void sendFile(String file) throws IOException {
-
     }
 
     @Override
@@ -382,7 +377,10 @@ public class ServerReceptor extends Communicator {
                  */
                 String message = req.readLine();
 
-                // Print message
+                System.out.println("RECEIVED(ENCRYPTED) MESSAGE: " + message);
+                message = AES.decrypt(message, CONSTANTS.SECRET);
+                System.out.println("DECRYPTED MESSAGE: " + message);
+
                 if (message != null && !message.isEmpty()) {
                     receive(message);
                 }
@@ -404,14 +402,16 @@ public class ServerReceptor extends Communicator {
     }
 
     private void receive(String message) {
-        ArrayList<String> commands = new ArrayList<>(Arrays.asList(message.split(" ")));
-        String mainCommand = commands.remove(0);
+        if (message != null && !message.isEmpty()) {
+            ArrayList<String> commands = new ArrayList<>(Arrays.asList(message.split(" ")));
+            String mainCommand = commands.remove(0);
 //        notifySub(mainCommand, new Payload<String>(message));
-        Payload<String> payload = fromStrings(commands);
+            Payload<String> payload = fromStrings(commands);
 
-        notifySub(
-                mainCommand,
-                payload);
+            notifySub(
+                    mainCommand,
+                    payload);
+        }
     }
 
     private Payload<String> fromStrings(ArrayList<String> commands) {
@@ -433,4 +433,6 @@ public class ServerReceptor extends Communicator {
 
         return true;
     }
+
+
 }

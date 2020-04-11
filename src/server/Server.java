@@ -60,12 +60,12 @@ public class Server extends Component {
         ServerReceptor serverReceptor;
         ServerDispatcher serverDispatcher;
         try {
-            serverReceptor = new ServerReceptor(socket, socket.getRemoteSocketAddress().toString());
+            serverReceptor = new ServerReceptor(socket, "ServerReceptor");
             serverReceptor.setLogging(true);
             new Thread(serverReceptor).start();
 
-            serverDispatcher = new ServerDispatcher(socket, socket.getRemoteSocketAddress().toString());
-            serverDispatcher.setLogging(true);
+            serverDispatcher = new ServerDispatcher(socket, "ServerDispatcher");
+            serverDispatcher.setLogging(false);
             new Thread(serverDispatcher).start();
 
         } catch (IOException e) {
