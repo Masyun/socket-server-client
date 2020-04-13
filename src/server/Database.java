@@ -43,20 +43,6 @@ public class Database {
         return null;
     }
 
-//    public User getUser(String name) {
-//        User user = null;
-//
-//        for (User u :
-//                users) {
-//            if (u.getUsername().equalsIgnoreCase(name)) {
-//                user = new User(u.getUsername(), u.getPassword(), u.getSocket());
-//                break;
-//            }
-//        }
-//
-//        return user;
-//    }
-
 
     /**
      * experimental
@@ -77,34 +63,6 @@ public class Database {
 
         return null;
     }
-//    /**
-//     * experimental
-//     *
-//     * @param socket
-//     * @return
-//     */
-//    public User getUserBySocket(Socket socket) {
-//        User user = null;
-//        Vector<User> users = Database.getInstance().getUsers();
-//        for (User u :
-//                users) {
-//            if (u.getSocket().equals(socket)) {
-////                System.out.println("[DB] getUserBySocket socket: " + socket + " - " + u);
-//                user = u;
-//                break;
-//            }
-//        }
-//
-//        return user;
-//    }
-
-//    public void logoutUser(User loggedIn) throws IOException {
-//        User user = getUser(loggedIn.getUsername());
-//        if (user != null) {
-//            user.setOnline(false);
-//            user.getSocket().close();
-//        }
-//    }
 
     public void createGroup(Group group) {
         groups.add(group);

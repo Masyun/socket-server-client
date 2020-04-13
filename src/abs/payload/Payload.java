@@ -1,7 +1,11 @@
-package abs.command;
+package abs.payload;
 
 import java.io.Serializable;
 
+/**
+ * Generic payload container
+ * @param <T> The type of the contents of this payload
+ */
 public class Payload<T> implements Serializable {
 
     private final T content;

@@ -3,6 +3,10 @@ package fileOrchestration;
 import java.io.*;
 import java.net.Socket;
 
+/**
+ * Helper class to seperate the transfer of files to a different thread with the same socket reference so that the other communication socket isn't intertwined
+ * This class is able to send a file to a specific socket
+ */
 public class FileInitiator extends Thread {
     private Socket socket;
     private String fileName;

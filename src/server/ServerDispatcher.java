@@ -1,6 +1,6 @@
 package server;
 
-import abs.command.Payload;
+import abs.payload.Payload;
 import abs.listener.CommandListener;
 import communicator.Communicator;
 import model.User;
@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+/**
+ * ServerDispatcher handles the pingpong cycle between clients and also is able to dispatch other data to clients
+ */
 public class ServerDispatcher extends Communicator {
 
     private final PrintWriter res;

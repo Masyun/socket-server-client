@@ -1,7 +1,13 @@
 package abs.listener;
 
-import abs.command.Payload;
+import abs.payload.Payload;
 
+/**
+ * Abstract listener class for anonymous implementation for our event loop
+ * These are invoked on both server and client side based on {payload}
+ * A Command listener describes a possible action that a module(client/server) should listen on
+ * so the API description is also provided here when creating a listener.
+ */
 public abstract class CommandListener {
     protected String command;
     protected String resCommand;
@@ -16,8 +22,18 @@ public abstract class CommandListener {
     public CommandListener() {
     }
 
+    /**
+     * Abstract update method that is invoked automatically based on {payload}
+     * The implementation will be given in the Communicator sub classes
+     * @param payload
+     * @throws IndexOutOfBoundsException
+     */
     public abstract void update(Payload payload) throws IndexOutOfBoundsException;
 
+    /**
+     * The resCommand is used for automatically responding to events from client to server or vice versa
+     * @param command
+     */
     public void setCommand(String command) {
         this.command = command;
         this.resCommand = command + "_res ";

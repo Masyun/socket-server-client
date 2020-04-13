@@ -1,6 +1,6 @@
 package listener;
 
-import abs.command.Payload;
+import abs.payload.Payload;
 import abs.listener.CommandListener;
 import communicator.Communicator;
 

@@ -1,6 +1,6 @@
 package client;
 
-import abs.command.Payload;
+import abs.payload.Payload;
 import abs.listener.CommandListener;
 import communicator.Communicator;
 import fileOrchestration.FileInitiator;
@@ -14,6 +14,9 @@ import java.util.Arrays;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
+/**
+ * The ClientDispatcher is responsible for dispatching data from the client to the server
+ */
 public class ClientDispatcher
         extends Communicator {
 
@@ -68,10 +71,7 @@ public class ClientDispatcher
                 new CommandListener("[file id]", "Accepts the specified file id for transfer - recipient is prompted to accept file") {
                     @Override
                     public void update(Payload payload) throws IndexOutOfBoundsException {
-//                        try {
-//                            String fileName =
-//                            fs = new FileStorer(getFileTransferSocket(), "recipient_inbox/" + fileName);
-//                        }
+                        throw new Error("Method not implemented");
                     }
                 });
         addListener("group_create",

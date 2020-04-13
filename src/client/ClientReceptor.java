@@ -1,6 +1,6 @@
 package client;
 
-import abs.command.Payload;
+import abs.payload.Payload;
 import abs.listener.CommandListener;
 import communicator.Communicator;
 import fileOrchestration.FileStorer;
@@ -15,6 +15,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+/**
+ * The Client Receptor is responsible for receiving message from the server to the client
+ */
 public class ClientReceptor extends Communicator {
 
     private final BufferedReader res;

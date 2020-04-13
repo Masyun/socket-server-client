@@ -1,6 +1,6 @@
 package communicator;
 
-import abs.command.Payload;
+import abs.payload.Payload;
 import abs.listener.CommandListener;
 import listener.EventManager;
 import model.User;
@@ -14,6 +14,11 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+/**
+ * Communicator class is an abstraction that allows us to connect to sockets without giving the concrete stream source
+ * This allows us to extend a class from communicator and it will have all the necessary data and behaviour to send OR receive data over a socket connection.
+ * The data is processed through an event loop which fires events in the {CommandListener}'s in EventManager
+ */
 public abstract class Communicator implements Runnable {
 
     private final String name;
@@ -100,37 +105,4 @@ public abstract class Communicator implements Runnable {
         String content = (String) payload.get();
         return new ArrayList<String>(Arrays.asList(content.split(" ")));
     }
-
-//    private void saveFile(Socket clientSock) throws IOException {
-//        DataInputStream dis = new DataInputStream(clientSock.getInputStream());
-//        FileOutputStream fos = new FileOutputStream("testfile.jpg");
-//        byte[] buffer = new byte[4096];
-//
-//        int filesize = 15123; // Send file size in separate msg
-//        int read = 0;
-//        int totalRead = 0;
-//        int remaining = filesize;
-//        while ((read = dis.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
-//            totalRead += read;
-//            remaining -= read;
-//            System.out.println("read " + totalRead + " bytes.");
-//            fos.write(buffer, 0, read);
-//        }
-//
-//        fos.close();
-//        dis.close();
-//    }
-
-//    public void sendFile(String file) throws IOException {
-//        DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-//        FileInputStream fis = new FileInputStream(file);
-//        byte[] buffer = new byte[4096];
-//
-//        while (fis.read(buffer) > 0) {
-//            dos.write(buffer);
-//        }
-//
-//        fis.close();
-//        dos.close();
-//    }
 }

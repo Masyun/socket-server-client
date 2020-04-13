@@ -1,6 +1,6 @@
 package server;
 
-import abs.command.Payload;
+import abs.payload.Payload;
 import abs.listener.CommandListener;
 import communicator.Communicator;
 import fileOrchestration.FileInitiator;
@@ -24,6 +24,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+/**
+ * ServerReceptor is responsible for received data from a client to the server
+ * It processes this data by doing IO operations, database operations, scheduling tasks and forwarding data to other clients
+ */
 public class ServerReceptor extends Communicator {
 
     private final BufferedReader req;
@@ -354,7 +358,7 @@ public class ServerReceptor extends Communicator {
                 String usernameToKick = parameters.remove(0);
 
 
-                if ((Database.getInstance().getGroup(groupName) != null) && Database.getInstance().getGroup(groupName).getAdministrator().equals(loggedIn)) { // user issuing kick command is admin of this group
+                if ((Database.getInstance().getGroup(groupName) != null) && Database.getInstance().getGroup(groupName).getAdministrator().equals(loggedIn)) { // user issuing kick payload is admin of this group
                     User userToKick = Database.getInstance().getUser(usernameToKick);
                     Database.getInstance().getGroup(groupName).removeUser(userToKick);
                     res.print(CONSTANTS.COMMAND_PREFIX + resCommand + loggedIn.getUsername() + " kicked " + usernameToKick + " from group " + groupName);

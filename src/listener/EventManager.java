@@ -1,13 +1,14 @@
 package listener;
 
-import abs.command.Payload;
+import abs.payload.Payload;
 import abs.listener.CommandListener;
-import abs.listener.Publisher;
 
 import java.util.HashMap;
 import java.util.Map;
 
-
+/**
+ * Observable/Publisher container class - is responsible for the event loop
+ */
 public class EventManager implements Publisher {
     private final String identifier;
     private Map<String, CommandListener> listeners = new HashMap<>();
@@ -35,6 +36,11 @@ public class EventManager implements Publisher {
         return listeners;
     }
 
+    /**
+     * Notify the corresponding listener and invoke the {update()} call
+     * @param operation
+     * @param payload
+     */
     @Override
     public void notifySubscribers(String operation, Payload payload) {
         CommandListener listener = listeners.get(operation);

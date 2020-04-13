@@ -8,6 +8,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
 
+/**
+ * AES Utility class for encryption - storing the secret in the CONSTANTS files for proper workflow
+ */
 public class AES {
 
     private static SecretKeySpec secretKey;

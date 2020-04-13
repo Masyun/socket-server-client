@@ -6,6 +6,10 @@ import communicator.Communicator;
 import java.io.IOException;
 import java.net.Socket;
 
+/**
+ * Main client component, which is bootstrapped in client.App
+ * It has 2 threads, one read thread and one write thread
+ */
 public class Client extends Component {
 
     private Socket socket;

@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 
+/**
+ * The FileStorer is responsible for saving a file on the {fileSocket} if any data is written to it - note that its up to the programmer to manually start this process
+ */
 public class FileStorer extends Thread {
 
     private final Socket socket;
