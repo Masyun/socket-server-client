@@ -59,9 +59,8 @@ public class ServerReceptor extends Communicator {
     protected void attachListeners() {
 //        addListener("help", new CommandListener() {
 //            @Override
-//            public void update(Payload payload) {
+//            public void update(Payload payload) throws IndexOutOfBoundsException  {
 //                String api = getEventsDescription();
-//                System.out.println(">>>>>>>>>\n" + api);
 //                res.println("/server " + api);
 //                res.flush();
 //            }
@@ -86,10 +85,16 @@ public class ServerReceptor extends Communicator {
                 String username = parameters.remove(0);
                 String password = parameters.remove(0);
 
-                Database.getInstance().insertUser(new User(username, password, getSocket(), getFileTransferSocket()));
-                loggedIn = Database.getInstance().getUser(username);
-                res.println("/server " + loggedIn);
-                res.flush();
+                if (loggedIn == null) {
+                    Database.getInstance().insertUser(new User(username, password, getSocket(), getFileTransferSocket()));
+                    loggedIn = Database.getInstance().getUser(username);
+                    res.println(CONSTANTS.COMMAND_PREFIX + "server " + "Created user  " + loggedIn);
+                    res.flush();
+                } else {
+                    loggedIn = Database.getInstance().getUser(username);
+                    res.println(CONSTANTS.COMMAND_PREFIX + "server " + "User already logged in " + loggedIn);
+                    res.flush();
+                }
             }
         });
         addListener("user", new CommandListener() {
@@ -205,7 +210,7 @@ public class ServerReceptor extends Communicator {
         });
         addListener("file_accept", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 ArrayList<String> parameters = parseToArray(payload);
                 int fileReqId = Integer.parseInt(parameters.remove(0)) - 1;
                 String fileName = fileRequestNames.get(fileReqId);
@@ -249,7 +254,7 @@ public class ServerReceptor extends Communicator {
         });
         addListener("group_create", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 if (!isAuth()) {
                     return;
                 }
@@ -270,7 +275,7 @@ public class ServerReceptor extends Communicator {
         });
         addListener("groups", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 Vector<Group> groupVector = Database.getInstance().getGroups();
                 res.println(CONSTANTS.COMMAND_PREFIX + resCommand + groupVector.toString());
                 res.flush();
@@ -279,21 +284,22 @@ public class ServerReceptor extends Communicator {
 
         addListener("group_join", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 if (!isAuth()) {
                     return;
                 }
                 System.out.println("Group join request by " + loggedIn);
                 ArrayList<String> parameters = parseToArray(payload);
                 String groupName = parameters.remove(0);
-                Database.getInstance().addUserToGroup(groupName, loggedIn);
+                Database.getInstance().getGroup(groupName).addUser(loggedIn);
+//                Database.getInstance().addUserToGroup(groupName, loggedIn);
                 res.println("/server group joined");
                 res.flush();
             }
         });
         addListener("group_message", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 if (!isAuth()) {
                     return;
                 }
@@ -315,7 +321,7 @@ public class ServerReceptor extends Communicator {
         });
         addListener("group_leave", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 if (!isAuth()) {
                     return;
                 }
@@ -338,18 +344,20 @@ public class ServerReceptor extends Communicator {
         });
         addListener("group_kick", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 if (!isAuth()) {
                     return;
                 }
                 ArrayList<String> parameters = parseToArray(payload);
+
                 String groupName = parameters.remove(0);
                 String usernameToKick = parameters.remove(0);
 
-                if (Database.getInstance().getGroup(groupName).getAdministrator().equals(loggedIn)) { // user issuing kick command is admin of this group
+
+                if ((Database.getInstance().getGroup(groupName) != null) && Database.getInstance().getGroup(groupName).getAdministrator().equals(loggedIn)) { // user issuing kick command is admin of this group
                     User userToKick = Database.getInstance().getUser(usernameToKick);
                     Database.getInstance().getGroup(groupName).removeUser(userToKick);
-                    res.print(loggedIn.getUsername() + " kicked " + usernameToKick + " from group " + groupName);
+                    res.print(CONSTANTS.COMMAND_PREFIX + resCommand + loggedIn.getUsername() + " kicked " + usernameToKick + " from group " + groupName);
                     res.flush();
                 }
 //                Vector<Group> groups = Database.getInstance().getGroups();
@@ -368,7 +376,7 @@ public class ServerReceptor extends Communicator {
         });
         addListener("logout", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 try {
                     Database.getInstance().logoutUser(getSocket());
                     setRunning(false);
@@ -444,7 +452,15 @@ public class ServerReceptor extends Communicator {
 
     @Override
     public String getAPI() {
-        return null;
+        StringBuilder sb = new StringBuilder();
+        sb.append("API STUB");
+        for (CommandListener listener : getAPIListeners().values()) {
+//            sb.append(CONSTANTS.COMMAND_PREFIX);
+//            sb.append(listener.getCommand());
+//            sb.append(" - ");
+//            sb.append(listener.)
+        }
+        return sb.toString();
     }
 
     public void setPong(boolean pong) {

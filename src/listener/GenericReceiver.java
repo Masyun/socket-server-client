@@ -8,13 +8,18 @@ public class GenericReceiver extends CommandListener {
 
     private Communicator communicator;
 
+    public GenericReceiver(Communicator communicator, String params, String description) {
+        super(params, description);
+        this.communicator = communicator;
+    }
+
     public GenericReceiver(Communicator communicator) {
         this.communicator = communicator;
     }
 
     @Override
     public void update(Payload payload) {
-        System.out.println(command + ">");
+//        System.out.println(command + ">");
         System.out.println(payload.get());
     }
 }

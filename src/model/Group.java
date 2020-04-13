@@ -68,6 +68,7 @@ public class Group {
      * @param user User
      */
     public void addUser(User user) {
+        System.out.println("Adding user to group");
         this.usersInGroup.add(user);
     }
 
@@ -90,6 +91,6 @@ public class Group {
 
     @Override
     public String toString() {
-        return "Group: " + name + "(" + getUsersInGroup().size() + ") | Admin: " + getAdministrator().getUsername() + "){ " + getUsersInGroup() + " }";
+        return "Group: " + name + "(" + getUsersInGroup().size() + ") | Admin: " + getAdministrator().getUsername() + "){ " + getUsersInGroup() + " }\n";
     }
 }

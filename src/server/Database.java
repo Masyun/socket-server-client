@@ -129,6 +129,7 @@ public class Database {
         for (Group g :
                 groups) {
             if (g.getName().equalsIgnoreCase(groupName)) {
+                System.out.println("Adding user to group");
                 g.addUser(user);
                 break;
             }

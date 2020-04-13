@@ -67,12 +67,12 @@ public class Server extends Component {
         System.out.println("\nNew incoming client-connection " + socket.getRemoteSocketAddress().toString());
 
         try {
-            serverReceptor = new ServerReceptor(socket, "ServerReceptor", fileSocket);
+            serverReceptor = new ServerReceptor(socket, " Server Receptor", fileSocket);
             serverReceptor.setLogging(true);
             new Thread(serverReceptor).start();
 
-            serverDispatcher = new ServerDispatcher(socket, "ServerDispatcher");
-            serverDispatcher.setLogging(false);
+            serverDispatcher = new ServerDispatcher(socket, " Server Dispatcher");
+            serverDispatcher.setLogging(true);
             new Thread(serverDispatcher).start();
 
         } catch (IOException e) {

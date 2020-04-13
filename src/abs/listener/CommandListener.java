@@ -8,6 +8,11 @@ public abstract class CommandListener {
     protected String params;
     protected String description;
 
+    public CommandListener(String params, String description) {
+        this.params = params;
+        this.description = description;
+    }
+
     public CommandListener() {
     }
 

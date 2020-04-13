@@ -112,11 +112,11 @@ public class User {
 
     @Override
     public String toString() {
-        return "User{" +
+        return "{" +
                 "username='" + username + '\'' +
                 ", socket=" + socket +
                 ", online=" + online +
                 ", pong=" + pong +
-                '}';
+                '}' + "\n";
     }
 }

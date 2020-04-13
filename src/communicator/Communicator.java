@@ -57,7 +57,7 @@ public abstract class Communicator implements Runnable {
         if ((!command.contains("/ping") && !command.contains("/ping_res"))
                 && command.startsWith(CONSTANTS.COMMAND_PREFIX)) {
             if (logging) {
-                System.out.println("[" + name + "] event " + command + ": " + payload);
+                System.err.println("[" + name + "] event " + command + ": " + payload);
             }
             events.notifySubscribers(command, payload);
         }

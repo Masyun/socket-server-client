@@ -12,9 +12,16 @@ public class GenericSender extends CommandListener {
     private final PrintWriter out;
     private Communicator communicator;
 
+    public GenericSender(Communicator communicator, String params, String description) throws IOException {
+        super(params, description);
+        this.communicator = communicator;
+        out = new PrintWriter(communicator.getSocket().getOutputStream());
+    }
+
     public GenericSender(Communicator communicator) throws IOException {
         this.communicator = communicator;
         out = new PrintWriter(communicator.getSocket().getOutputStream());
+
     }
 
     @Override

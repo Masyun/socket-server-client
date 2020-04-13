@@ -48,7 +48,7 @@ public class ServerDispatcher extends Communicator {
 
                 if (user != null) {
                     if (logging) {
-                        System.out.println(user.getUsername() + ": pong received");
+                        System.err.println(user.getUsername() + ": pong received");
                     }
                     Database.getInstance().getUserBySocket(getSocket()).setPong(false);
                 } else {

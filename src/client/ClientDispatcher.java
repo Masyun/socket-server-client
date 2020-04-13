@@ -34,22 +34,22 @@ public class ClientDispatcher
     @Override
     protected void attachListeners() throws IOException {
         addListener("help",
-                new CommandListener() {
+                new CommandListener(null, "Displays the available API") {
                     @Override
-                    public void update(Payload payload) {
+                    public void update(Payload payload) throws IndexOutOfBoundsException {
                         System.out.println(getAPI());
                     }
                 });
         addListener("register",
-                new GenericSender(this));
+                new GenericSender(this, "[username] [password]", "Registers a user and also logs them into the system"));
         addListener("user",
-                new GenericSender(this));
+                new GenericSender(this, null, "Displays the currently logged in user"));
         addListener("users",
-                new GenericSender(this));
+                new GenericSender(this, null, "Displays a list of all users"));
         addListener("dm",
-                new GenericSender(this));
+                new GenericSender(this, "[username] [message]", "Sends a DM to the specified user"));
         addListener("file_init",
-                new CommandListener() {
+                new CommandListener("[recipient] [file name]", "Transfers a file to the server for further transfer to a receiving client - if they accept") {
                     @Override
                     public void update(Payload payload) throws IndexOutOfBoundsException {
                         ArrayList<String> parameters = parseToArray(payload);
@@ -65,7 +65,7 @@ public class ClientDispatcher
                     }
                 });
         addListener("file_accept",
-                new CommandListener() {
+                new CommandListener("[file id]", "Accepts the specified file id for transfer - recipient is prompted to accept file") {
                     @Override
                     public void update(Payload payload) throws IndexOutOfBoundsException {
 //                        try {
@@ -75,18 +75,19 @@ public class ClientDispatcher
                     }
                 });
         addListener("group_create",
-                new GenericSender(this));
+                new GenericSender(this, "[group name]", "Creates a group with the given name"));
         addListener("groups",
-                new GenericSender(this));
+                new GenericSender(this, null, "Displays a list of available groups and their members"));
         addListener("group_join",
-                new GenericSender(this));
+                new GenericSender(this, "[group name]", "Adds the user to the specified group"));
         addListener("group_message",
-                new GenericSender(this));
+                new GenericSender(this, "[group name] [message]", "Sends the message to everybody in the group"));
         addListener("group_leave",
-                new GenericSender(this));
+                new GenericSender(this, "[group name]", "Leaves the specified group"));
         addListener("group_kick",
-                new GenericSender(this));
-        addListener("logout", new CommandListener() {
+                new GenericSender(this, "[group name] [user to kick]", "Kicks the specified user from the group - need to be admin of group to do"));
+        addListener("logout", new CommandListener(null,
+                "Logs out the user and closes the connection to the back-end by sending the appropriate signals and cleanup process of the database/state") {
             @Override
             public void update(Payload payload) throws IndexOutOfBoundsException {
                 try {
@@ -135,10 +136,14 @@ public class ClientDispatcher
     public String getAPI() {
         StringBuilder sb = new StringBuilder();
         for (CommandListener listener : getAPIListeners().values()) {
-//            sb.append(CONSTANTS.COMMAND_PREFIX);
-//            sb.append(listener.getCommand());
-//            sb.append(" - ");
-//            sb.append(listener.)
+            sb.append(CONSTANTS.COMMAND_PREFIX);
+            sb.append(listener.getCommand());
+            sb.append("\n");
+            sb.append(" - ");
+            sb.append(listener.getParams() != null ? listener.getParams() : "");
+            sb.append(" => ");
+            sb.append(listener.getDescription());
+            sb.append("\n\n");
         }
         return sb.toString();
     }

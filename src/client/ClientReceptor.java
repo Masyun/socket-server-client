@@ -83,7 +83,6 @@ public class ClientReceptor extends Communicator {
 
                     receive(message);
                 }
-                System.out.print(">");
             } catch (IOException e) {
                 try {
                     System.out.println("Closing socket...");

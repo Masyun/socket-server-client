@@ -38,12 +38,12 @@ public class Client extends Component {
     protected void initialize() {
         try {
             // Sender Thread
-            clientDispatcher = new ClientDispatcher(socket, "ClientReceptor");
+            clientDispatcher = new ClientDispatcher(socket, " Client Dispatcher");
             clientDispatcher.setLogging(true);
             dispatcherThread = new Thread(clientDispatcher);
 
             // Receiver thread
-            clientReceptor = new ClientReceptor(socket, "ClientReceptor");
+            clientReceptor = new ClientReceptor(socket, " Client Receptor");
             clientReceptor.setLogging(true);
             receptorThread = new Thread(clientReceptor);
 
