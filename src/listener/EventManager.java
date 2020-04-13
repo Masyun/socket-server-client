@@ -32,13 +32,21 @@ public class EventManager implements Publisher {
         listeners.remove(operation);
     }
 
+    public Map<String, CommandListener> getListeners() {
+        return listeners;
+    }
+
     @Override
     public void notifySubscribers(String operation, Payload payload) {
 //        System.out.println("[handler" + operation + "] - " + payload);
         CommandListener listener = listeners.get(operation);
         if (listener != null) {
 //            System.out.println("[handler" + operation + "] - " + payload);
-            listener.update(payload);
+            try{
+                listener.update(payload);
+            }catch (IndexOutOfBoundsException ioobe){
+                ioobe.printStackTrace();
+            }
         }
     }
 }

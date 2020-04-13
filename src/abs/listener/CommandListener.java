@@ -5,13 +5,13 @@ import abs.command.Payload;
 public abstract class CommandListener {
     protected String command;
     protected String resCommand;
-//    protected Communicator communicator;
+    protected String params;
+    protected String description;
 
     public CommandListener() {
-//        this.communicator = communicator;
     }
 
-    public abstract void update(Payload payload);
+    public abstract void update(Payload payload) throws IndexOutOfBoundsException;
 
     public void setCommand(String command) {
         this.command = command;
@@ -22,7 +22,19 @@ public abstract class CommandListener {
         return command;
     }
 
-    //    public Socket getSocket(){
-//        return communicator.getSocket();
-//    }
+    public String getParams() {
+        return params;
+    }
+
+    public void setParams(String params) {
+        this.params = params;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
 }

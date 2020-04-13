@@ -3,6 +3,7 @@ package client;
 import abs.command.Payload;
 import abs.listener.CommandListener;
 import communicator.Communicator;
+import fileOrchestration.FileStorer;
 import listener.GenericReceiver;
 
 import java.io.BufferedReader;
@@ -18,9 +19,10 @@ public class ClientReceptor extends Communicator {
 
     private final BufferedReader res;
     private final PrintWriter req;
+    private FileStorer fs;
 
     public ClientReceptor(Socket socket, String name) throws IOException {
-        super(socket, name);
+        super(socket, name, new Socket(CONSTANTS.SERVER_ADDRESS, CONSTANTS.SERVER_PORT + 1));
         res = new BufferedReader(new InputStreamReader(getSocket().getInputStream()));
         req = new PrintWriter(getSocket().getOutputStream());
     }
@@ -81,11 +83,11 @@ public class ClientReceptor extends Communicator {
 
                     receive(message);
                 }
+                System.out.print(">");
             } catch (IOException e) {
                 try {
                     System.out.println("Closing socket...");
                     getSocket().close();
-                    System.out.println("Socket closed! :)");
                     setRunning(false);
                 } catch (IOException ex) {
                     ex.printStackTrace();

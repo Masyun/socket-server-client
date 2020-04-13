@@ -11,13 +11,15 @@ public class User {
     private String username;
     private String password;
     private Socket socket;
+    private Socket fileSocket;
     private boolean online;
     private boolean pong; // Received and send a PONG back to the server
 
-    public User(String username, String password, Socket socket) {
+    public User(String username, String password, Socket socket, Socket fileSocket) {
         this.username = username;
         this.password = password;
         this.socket = socket;
+        this.fileSocket = fileSocket;
         this.online = true;
         this.pong = true;
     }
@@ -47,6 +49,14 @@ public class User {
      */
     public Socket getSocket() {
         return socket;
+    }
+
+    /**
+     * get dedicated Socket for file transfer
+     * @return
+     */
+    public Socket getFileSocket() {
+        return fileSocket;
     }
 
     /**

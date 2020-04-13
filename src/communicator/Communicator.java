@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -17,6 +18,7 @@ public abstract class Communicator implements Runnable {
 
     private final String name;
     private final Socket socket;
+    private final Socket fileTransferSocket;
     private boolean running;
     private final EventManager events;
     protected User loggedIn = null;
@@ -26,6 +28,17 @@ public abstract class Communicator implements Runnable {
 
     public Communicator(Socket socket, String name) throws IOException {
         this.name = name;
+        this.socket = socket;
+        this.fileTransferSocket = null;
+        this.events = new EventManager(name);
+
+        attachListeners();
+        setRunning(true);
+    }
+
+    public Communicator(Socket socket, String name, Socket fileTransferSocket) throws IOException {
+        this.name = name;
+        this.fileTransferSocket = fileTransferSocket;
         this.socket = socket;
         this.events = new EventManager(name);
 
@@ -62,14 +75,25 @@ public abstract class Communicator implements Runnable {
         return running;
     }
 
+    protected Map<String, CommandListener> getAPIListeners(){
+        return events.getListeners();
+    }
+
+    protected String getAPI(){
+        return "API Description for " + getName() + "\n";
+    }
+
     public void setRunning(boolean running) {
         System.out.println("Setting communicator status: " + (running ? "running" : "stopped"));
         this.running = running;
     }
 
     public void setLogging(boolean logging) {
-        System.out.println("Enabling logging for " + name);
         this.logging = logging;
+    }
+
+    public Socket getFileTransferSocket() {
+        return fileTransferSocket;
     }
 
     protected ArrayList<String> parseToArray(Payload payload) {

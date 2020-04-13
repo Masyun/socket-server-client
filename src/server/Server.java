@@ -9,10 +9,12 @@ import java.net.Socket;
 public class Server extends Component {
 
     private ServerSocket serverSocket;
+    private ServerSocket fileTransferSocket;
 
     public Server() {
         try {
             this.serverSocket = new ServerSocket(CONSTANTS.SERVER_PORT);
+            this.fileTransferSocket = new ServerSocket(CONSTANTS.SERVER_PORT+1);
             System.out.println("Server has been started on port " + serverSocket.getLocalSocketAddress().toString() + "!");
         } catch (IOException e) {
             System.err.println("Server could not be started on port "
@@ -32,8 +34,9 @@ public class Server extends Component {
             try {
                 // Wait for an incoming client-connection request (blocking)
                 Socket socket = serverSocket.accept();
-                System.out.println("\nNew incoming client-connection " + socket.getRemoteSocketAddress().toString());
-                startClient(socket);
+                Socket fileSocket = fileTransferSocket.accept();
+
+                startClient(socket, fileSocket);
 ////                ServerReceptor receptor = new ServerReceptor(socket, socket.getRemoteSocketAddress().toString());
 //                // Message processing thread for each connecting client
 //                ServerReceptor serverReceptor = new ServerReceptor(socket, socket.getRemoteSocketAddress().toString());
@@ -56,11 +59,15 @@ public class Server extends Component {
         System.out.println("Server end()");
     }
 
-    private void startClient(Socket socket){
+    private void startClient(Socket socket, Socket fileSocket){
         ServerReceptor serverReceptor;
         ServerDispatcher serverDispatcher;
+
+        System.out.println("File transfer socket connected: " + fileSocket.getRemoteSocketAddress().toString());
+        System.out.println("\nNew incoming client-connection " + socket.getRemoteSocketAddress().toString());
+
         try {
-            serverReceptor = new ServerReceptor(socket, "ServerReceptor");
+            serverReceptor = new ServerReceptor(socket, "ServerReceptor", fileSocket);
             serverReceptor.setLogging(true);
             new Thread(serverReceptor).start();
 

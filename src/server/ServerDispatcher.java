@@ -48,9 +48,9 @@ public class ServerDispatcher extends Communicator {
 
                 if (user != null) {
                     if (logging) {
-                        System.out.println(getName() + ": pong received");
+                        System.out.println(user.getUsername() + ": pong received");
                     }
-                    user.setPong(false);
+                    Database.getInstance().getUserBySocket(getSocket()).setPong(false);
                 } else {
                     res.println(CONSTANTS.COMMAND_PREFIX + "server Please register using | /register [username] [password] | or you will get kicked(" + (RETRY_ATTEMPTS - retry) + ")");
                     res.flush();
@@ -69,7 +69,6 @@ public class ServerDispatcher extends Communicator {
                     System.out.println("Closing socket...");
                     setRunning(false);
                     getSocket().close();
-                    System.out.println("Socket closed! :)");
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }

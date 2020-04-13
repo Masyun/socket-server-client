@@ -1,9 +1,10 @@
 package server;
 
-import AES.AES;
 import abs.command.Payload;
 import abs.listener.CommandListener;
 import communicator.Communicator;
+import fileOrchestration.FileInitiator;
+import fileOrchestration.FileStorer;
 import model.Group;
 import model.User;
 
@@ -16,6 +17,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Vector;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,15 +28,29 @@ public class ServerReceptor extends Communicator {
 
     private final BufferedReader req;
     private final PrintWriter res;
+    private FileStorer fs;
+    private FileInitiator fi;
 
     private AtomicInteger lastFileId = new AtomicInteger(1);
     private ArrayList<String> fileRequestNames = new ArrayList<>();
-    private HashMap<String, Boolean> fileRequestResponses = new HashMap<>();
+    private BlockingQueue<TransferRequest> queue = new ArrayBlockingQueue<>(1024);
+
+    private static HashMap<String, Boolean> fileRequestResponses = new HashMap<>();
+
     private ArrayList<ScheduledFuture<Boolean>> fileRequestTasks = new ArrayList<>();
+    private boolean pong;
 
 
     public ServerReceptor(Socket socket, String name) throws IOException {
         super(socket, name);
+        req = new BufferedReader(new InputStreamReader(getSocket().getInputStream()));
+        res = new PrintWriter(getSocket().getOutputStream());
+    }
+
+    public ServerReceptor(Socket socket, String name, Socket fileTransferSocket) throws IOException {
+        super(socket, name, fileTransferSocket);
+        System.out.println("Server receptor connected to file transfer socket: " + getFileTransferSocket());
+//        fs = new FileStorer(getFileTransferSocket());
         req = new BufferedReader(new InputStreamReader(getSocket().getInputStream()));
         res = new PrintWriter(getSocket().getOutputStream());
     }
@@ -51,25 +68,25 @@ public class ServerReceptor extends Communicator {
 //        });
         addListener("ping_res", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 /**
                  * PingPong
                  */
                 User user = Database.getInstance().getUserBySocket(getSocket());
                 if (user != null) {
-                    user.setPong(true);
+                    Database.getInstance().getUserBySocket(getSocket()).setPong(true);
                 }
             }
         });
         addListener("register", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 ArrayList<String> parameters = parseToArray(payload);
 
                 String username = parameters.remove(0);
                 String password = parameters.remove(0);
 
-                Database.getInstance().insertUser(new User(username, password, getSocket()));
+                Database.getInstance().insertUser(new User(username, password, getSocket(), getFileTransferSocket()));
                 loggedIn = Database.getInstance().getUser(username);
                 res.println("/server " + loggedIn);
                 res.flush();
@@ -77,18 +94,18 @@ public class ServerReceptor extends Communicator {
         });
         addListener("user", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 if (!isAuth()) {
                     return;
                 }
 
-                res.println("/server " + loggedIn);
+                res.println("/server " + Database.getInstance().getUser(loggedIn.getUsername()));
                 res.flush();
             }
         });
         addListener("users", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 Vector<User> users = Database.getInstance().getUsers();
                 res.println(CONSTANTS.COMMAND_PREFIX + resCommand + users.toString());
                 res.flush();
@@ -96,7 +113,7 @@ public class ServerReceptor extends Communicator {
         });
         addListener("dm", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 if (!isAuth()) {
                     return;
                 }
@@ -119,7 +136,7 @@ public class ServerReceptor extends Communicator {
         });
         addListener("file_init", new CommandListener() {
             @Override
-            public void update(Payload payload) {
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 if (!isAuth()) {
                     return;
                 }
@@ -133,104 +150,100 @@ public class ServerReceptor extends Communicator {
                 User recipient = Database.getInstance().getUser(recipientName);
 
                 if (recipient != null) {
+                    System.out.println("recipient found: " + recipient);
+                    fs = new FileStorer(getFileTransferSocket(), "file_buffer/" + fileName);
+                    fs.start();
 
-                    FileStorer fileStorer = new FileStorer(getSocket(), "file_buffer/" + fileName);
+                    final int fileId = lastFileId.getAndIncrement();
+
                     try {
-                        fileStorer.saveFile();
-                    } catch (IOException e) {
-                        res.println("/server file transfer corrupted");
-                        res.flush();
+                        queue.put(new TransferRequest(
+                                fileId,
+                                Database.getInstance().getUser(loggedIn.getUsername()),
+                                Database.getInstance().getUser(recipient.getUsername()),
+                                "file_buffer/" + fileName));
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
 
-                    try {
-                        PrintWriter res = new PrintWriter(recipient.getSocket().getOutputStream());
-                        final int fileId = lastFileId.getAndIncrement();
-                        res.println(CONSTANTS.COMMAND_PREFIX + resCommand + loggedIn.getUsername() + " wants to send you file: " + fileName);
-                        res.println(CONSTANTS.COMMAND_PREFIX + resCommand + "reply with [/file_accept " + fileId + "] to accept file");
-                        res.flush();
 
-                        fileRequestResponses.put(fileName, false);
-                        fileRequestNames.add(fileName);
+                    fileRequestResponses.put(fileName, false);
+                    fileRequestNames.add(fileName);
 
-                        /**
-                         * Schedule a task for 15 seconds in the future:
-                         * If the recipient responded to the file transfer request, do the file sending
-                         * if recipient didn't respond, dont do anything and cancel/remove the file
-                         */
-                        ScheduledFuture<Boolean> fileTask = scheduledExecutorService.schedule(
-                                () -> {
-//                                    /**
-//                                     * If client response was received/accepted -> do execute
-//                                     * if client didnt respond with "/file_accept <id>" cancel the task
-//                                     */
-//                                    boolean recipientResponse = fileRequestResponses.get(fileName);
-//                                    System.out.println("recipientResponse: " + recipientResponse);
-//
-//                                    if (!recipientResponse) {
-//                                        do cleanup of file on server here
-//                                        return false;
-//                                    }
-//
-//                                    System.out.println("starting file transfer:\n" + fileName + " to " + recipientName);
-////                                    String datePrefix = new SimpleDateFormat("yyyyMMddHHmm").format(new Date()) + "." + fileType;
-//                                    File myFile = new File(fileName);
-//                                    byte[] mybytearray = new byte[(int) myFile.length()];
-//
-//                                    FileInputStream fis = new FileInputStream(myFile);
-//                                    BufferedInputStream bis = new BufferedInputStream(fis);
-//
-//                                    bis.read(mybytearray, 0, mybytearray.length);
-//
-//                                    System.out.println("Sending " + fileName + "(" + mybytearray.length + " bytes)");
-////
-////                                    try {
-////                                        PrintWriter res = new PrintWriter(Database.getInstance().getUser(usernameToDm).getSocket().getOutputStream());
-////                                        res.println(CONSTANTS.COMMAND_PREFIX + resCommand + loggedIn.getUsername() + ": " + message);
-////                                        res.flush();
-////                                    } catch (IOException e) {
-////                                        e.printStackTrace();
-////                                    }
-//
-//
-//                                    recipient.getSocket().getOutputStream().write(mybytearray, 0, mybytearray.length);
-//                                    recipient.getSocket().getOutputStream().flush();
-//                                    System.out.println("Done.");
-//
-//                                    System.out.println("Executed!");
-                                    return true;
-                                },
-                                10,
-                                TimeUnit.SECONDS);
+                    /**
+                     * Schedule a task for X seconds in the future:
+                     * If the recipient responded to the file transfer request, do the file sending
+                     * if recipient didn't respond, dont do anything and cancel/remove the file
+                     */
+                    ScheduledFuture<Boolean> fileTask;
+                    fileTask = scheduledExecutorService.schedule(
+                            () -> {
+                                if (!queue.isEmpty()) {
+                                    TransferRequest req = queue.take();
+                                    System.out.println("Found transfer request: " + req);
+                                    fi = new FileInitiator(req.getReceiver().getSocket(), req.getFileName());
+                                }
+//                                boolean accepted = fileRequestResponses.get(fileName);
+                                System.out.println("[TASK] FILE SUCCESS CHECK: " + fileRequestResponses.get(fileName));
 
-                        fileRequestTasks.add(fileTask);
+                                if (!queue.isEmpty()) {
+                                    TransferRequest req = queue.take();
+                                    fi = new FileInitiator(req.getReceiver().getSocket(), req.getFileName());
+                                    fi.start();
+                                }
+                                return true;
+                            },
+                            10,
+                            TimeUnit.SECONDS);
 
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                    fileRequestTasks.add(fileTask);
+                    res.println(CONSTANTS.COMMAND_PREFIX + resCommand + loggedIn.getUsername() + " wants to send you file: " + fileName);
+                    res.println(CONSTANTS.COMMAND_PREFIX + resCommand + "reply with [/file_accept " + fileId + "] to accept file");
+                    res.flush();
                 }
             }
         });
         addListener("file_accept", new CommandListener() {
             @Override
             public void update(Payload payload) {
+                ArrayList<String> parameters = parseToArray(payload);
+                int fileReqId = Integer.parseInt(parameters.remove(0)) - 1;
+                String fileName = fileRequestNames.get(fileReqId);
+
+                System.out.println("parsed id param: " + fileReqId);
+                System.out.println("filename: " + fileName);
+
+                if (fileName == null) {
+                    fileRequestTasks.get(fileReqId).cancel(false);
+                    System.err.println("Recipient provided wrong id");
+                    res.println("/server file transfer interrupted");
+                    res.flush();
+                    return;
+                }
+                fileRequestResponses.put(fileName, true);
+                System.out.println("Received file confirmation for file " + fileName);
+
+
+                res.println("/server " + fileName);
+                res.flush();
+
+            }
+        });
+        addListener("file_decline", new CommandListener() {
+            @Override
+            public void update(Payload payload) throws IndexOutOfBoundsException {
                 if (!isAuth()) {
                     return;
                 }
-
-                try {
-                    ArrayList<String> parameters = parseToArray(payload);
-                    int fileReqId = Integer.parseInt(parameters.remove(0)) - 1;
-                    String fileName = fileRequestNames.get(fileReqId);
-                    fileRequestResponses.put(fileName, true);
-//                    fileRequestTasks.get(fileReqId).cancel();
-                    System.out.println("Received file confirmation for file " + fileName);
-                } catch (IndexOutOfBoundsException e) {
-                    e.printStackTrace();
+                ArrayList<String> parameters = parseToArray(payload);
+                int fileReqId = Integer.parseInt(parameters.remove(0)) - 1;
+                String fileName = fileRequestNames.get(fileReqId);
+                if (fileName != null) {
+                    fileRequestTasks.get(fileReqId).cancel(true);
+                    System.out.println("Recipient declined file transfer");
+                    res.println("/server file transfer declined");
+                    res.flush();
                 }
-
-                res.println("/server file accepted");
-                res.flush();
 
             }
         });
@@ -370,6 +383,7 @@ public class ServerReceptor extends Communicator {
     @Override
     public void run() {
         while (!getSocket().isClosed() && isRunning()) {
+//            System.out.println(fileRequestTasks);
             try {
 
                 /**
@@ -377,21 +391,15 @@ public class ServerReceptor extends Communicator {
                  */
                 String message = req.readLine();
 
-                System.out.println("RECEIVED(ENCRYPTED) MESSAGE: " + message);
-                message = AES.decrypt(message, CONSTANTS.SECRET);
-                System.out.println("DECRYPTED MESSAGE: " + message);
-
                 if (message != null && !message.isEmpty()) {
                     receive(message);
                 }
 
             } catch (IOException e) {
-                e.printStackTrace();
                 try {
-                    System.out.println("Closing socket...");
+                    System.out.println("Closing connection " + getName() + "...");
                     setRunning(false);
                     getSocket().close();
-                    System.out.println("Socket closed! :)");
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
@@ -433,6 +441,66 @@ public class ServerReceptor extends Communicator {
 
         return true;
     }
+
+    @Override
+    public String getAPI() {
+        return null;
+    }
+
+    public void setPong(boolean pong) {
+        this.pong = pong;
+    }
+
+    public boolean getPong() {
+        return pong;
+    }
+
+//    class FileStorer {
+//
+//        private Socket socket;
+//        private String fileName;
+//        private DataInputStream dis;
+//        private FileOutputStream fos;
+//
+//        public FileStorer(String fileName) {
+//            this.fileName = fileName;
+//            try {
+//                this.dis = new DataInputStream(getSocket().getInputStream());
+//                this.fos = new FileOutputStream(fileName);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//
+//        public void saveFile() throws IOException {
+//            try {
+//                byte[] buffer = new byte[4096];
+//
+//                int filesize = 15123; // Send file size in separate msg
+//                int read = 0;
+//                int totalRead = 0;
+//                int remaining = filesize;
+//                while ((read = dis.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
+//                    totalRead += read;
+//                    remaining -= read;
+//                    System.out.println("read " + totalRead + " bytes.");
+//                    fos.write(buffer, 0, read);
+//                }
+//            } catch (IOException ioe) {
+//                ioe.printStackTrace();
+//                System.err.println("File save procedure corrupted");
+//            }finally {
+//                fos.flush();
+//                fos.close();
+//                dis.close();
+//            }
+//
+//        }
+//
+//        public String getFileName() {
+//            return fileName;
+//        }
+//    }
 
 
 }
